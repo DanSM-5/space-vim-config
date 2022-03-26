@@ -37,3 +37,7 @@ auto_completion_tab_key_behavior = "smart"
 name = 'shell'
 default_position = 'top'
 default_height = 30
+
+[[custom_plugins]]
+  repo = "tpope/vim-commentary"
+
