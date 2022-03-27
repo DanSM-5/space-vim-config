@@ -29,7 +29,7 @@ func! s:Set_os_specific() abort
   if os == s:linux && system('pwsh.exe -nolo -nopro -nonin -c uname') =~ 'MSYS'
     " We are inside wsl
     silent call s:WSL_conf()
-  elseif os = s:windows
+  elseif os == s:windows
     silent call s:Windows_conf()
   endif
 endf
