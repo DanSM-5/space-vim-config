@@ -26,6 +26,7 @@
     relativenumber = false
     guifont = "DroidSansMono NF:h18" 
     bootstrap_before = "config#before"
+    bootstrap_after = "config#after"
 
 # Enable autocomplete layer
 [[layers]]
@@ -41,3 +42,14 @@ default_height = 30
 [[custom_plugins]]
   repo = "tpope/vim-commentary"
 
+[[custom_plugins]]
+  repo = "inkarkat/vim-ReplaceWithRegister"
+
+[[custom_plugins]]
+  repo = "tpope/vim-surround"
+
+[[custom_plugins]]
+  repo = "christoomey/vim-sort-motion"
+
+[[custom_plugins]]
+  repo = "DanSM-5/vim-system-copy"
