@@ -18,5 +18,3 @@ func! s:Set_user_bindings() abort
   xmap zp <Plug>SystemPaste
   nmap zP <Plug>SystemPasteLine
 endf
-
-
