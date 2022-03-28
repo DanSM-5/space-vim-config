@@ -54,3 +54,6 @@ default_height = 30
 [[custom_plugins]]
   repo = "DanSM-5/vim-system-copy"
 
+[[custom_plugins]]
+  repo = "junegunn/fzf"
+

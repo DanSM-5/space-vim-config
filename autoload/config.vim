@@ -67,9 +67,9 @@ endf
 
 func! s:WSL_conf_before() abort
   " Not implemented
-  let g:spacevim_custom_plugins = [
-    \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
-    \ ]
+  " let g:spacevim_custom_plugins = [
+  "   \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
+  "   \ ]
 endf
 
 func! s:Windows_conf_after() abort
