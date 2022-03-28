@@ -8,7 +8,7 @@ func! config#before() abort
     au!
     au BufNewFile,BufRead *.uconfrc,*.uconfgrc,*.ualiasrc,*.ualiasgrc setfiletype sh
   augroup END
-  " silent call s:Set_os_specific_before()
+  silent call s:Set_os_specific_before()
 endf
 
 func! config#after() abort
@@ -67,6 +67,9 @@ endf
 
 func! s:WSL_conf_before() abort
   " Not implemented
+  let g:spacevim_custom_plugins = [
+    \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
+    \ ]
 endf
 
 func! s:Windows_conf_after() abort
