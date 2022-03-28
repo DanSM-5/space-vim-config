@@ -8,11 +8,12 @@ func! config#before() abort
     au!
     au BufNewFile,BufRead *.uconfrc,*.uconfgrc,*.ualiasrc,*.ualiasgrc setfiletype sh
   augroup END
+  " silent call s:Set_os_specific_before()
 endf
 
 func! config#after() abort
   silent call s:Set_user_bindings()
-  silent call s:Set_os_specific()
+  silent call s:Set_os_specific_after()
 endf
 
 func! s:Set_user_bindings() abort
@@ -24,13 +25,23 @@ func! s:Set_user_bindings() abort
   nmap zP <Plug>SystemPasteLine
 endf
 
-func! s:Set_os_specific() abort
+func! s:Set_os_specific_before() abort
   let os = s:CurrentOS()
   if os == s:linux && system('pwsh.exe -nolo -nopro -nonin -c uname') =~ 'MSYS'
     " We are inside wsl
-    silent call s:WSL_conf()
+    silent call s:WSL_conf_before()
   elseif os == s:windows
-    silent call s:Windows_conf()
+    silent call s:Windows_conf_before()
+  endif
+endf
+
+func! s:Set_os_specific_after() abort
+  let os = s:CurrentOS()
+  if os == s:linux && system('pwsh.exe -nolo -nopro -nonin -c uname') =~ 'MSYS'
+    " We are inside wsl
+    silent call s:WSL_conf_after()
+  elseif os == s:windows
+    silent call s:Windows_conf_after()
   endif
 endf
 
@@ -50,12 +61,20 @@ function! s:CurrentOS()
   return known_os
 endfunction
 
-func! s:Windows_conf() abort
+func! s:Windows_conf_before() abort
+  " Not implemented
+endf
+
+func! s:WSL_conf_before() abort
+  " Not implemented
+endf
+
+func! s:Windows_conf_after() abort
   " Set paste command with pwsh core
   let g:system_copy#paste_command = 'pwsh.exe -nolo -nopro -nonin -c "gcb"'
 endf
 
-func! s:WSL_conf() abort
+func! s:WSL_conf_after() abort
   " Set copy and paste commands
   let g:system_copy#paste_command = 'pwsh.exe -nolo -nopro -nonin -c "gcb"'
   let g:system_copy#copy_command = 'pwsh.exe -nolo -nopro -nonin -c "clip"'
