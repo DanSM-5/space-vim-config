@@ -43,10 +43,13 @@ default_height = 30
   repo = "tpope/vim-commentary"
 
 [[custom_plugins]]
-  repo = "inkarkat/vim-ReplaceWithRegister"
+  repo = "tpope/vim-surround"
 
 [[custom_plugins]]
-  repo = "tpope/vim-surround"
+  repo = "tpope/vim-fugitive"
+
+[[custom_plugins]]
+  repo = "inkarkat/vim-ReplaceWithRegister"
 
 [[custom_plugins]]
   repo = "christoomey/vim-sort-motion"
