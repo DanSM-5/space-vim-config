@@ -72,7 +72,8 @@ endf
 
 func! s:Windows_conf_after () abort
   " Set paste command with pwsh core
-  let g:system_copy#paste_command = 'pwsh.exe -nolo -nopro -nonin -c "gcb"'
+  " let g:system_copy#paste_command = 'pwsh.exe -nolo -nopro -nonin -c "gcb"'
+  let g:system_copy#paste_command = 'pbpaste.exe'
 endf
 
 " WSL specific
@@ -85,7 +86,8 @@ endf
 
 func! s:WSL_conf_after () abort
   " Set copy and paste commands
-  let g:system_copy#paste_command = 'pwsh.exe -nolo -nopro -nonin -c "gcb"'
+  " let g:system_copy#paste_command = 'pwsh.exe -nolo -nopro -nonin -c "gcb"'
+  let g:system_copy#paste_command = 'pbpaste.exe'
   let g:system_copy#copy_command = 'clip.exe'
 endf
 
