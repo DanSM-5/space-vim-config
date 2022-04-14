@@ -66,8 +66,10 @@ endfunction
 " Windows specific
 func! s:Windows_conf_before () abort
   " Not implemented
-  exe 'set shell='.fnameescape("pwsh -ExecutionPolicy Bypass")
-  set shellcmdflag=-c
+  " exe 'set shell='.fnameescape("pwsh -ExecutionPolicy Bypass")
+  " set shellcmdflag=-c
+  set shell=cmd
+  set shellcmdflag=/c
 endf
 
 func! s:Windows_conf_after () abort
