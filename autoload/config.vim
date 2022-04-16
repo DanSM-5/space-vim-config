@@ -96,6 +96,13 @@ func! s:CallCleanCommand (comm) abort
   return substitute(system(a:comm), s:cleanrgx, '', '')
 endf
 
+func! s:CleanCR () abort
+  %s/\r//g
+endf
+
+command -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
+command CleanCR call s:CleanCR()
+
 " Ensure command
 let s:sys = s:CallCleanCommand('uname') 
 
