@@ -60,3 +60,6 @@ default_height = 30
 [[custom_plugins]]
   repo = "junegunn/fzf"
 
+[[custom_plugins]]
+  repo = "mg979/vim-visual-multi"
+
