@@ -16,6 +16,7 @@ endf
 func! config#after () abort
   silent call s:Set_user_bindings()
   silent call s:Set_os_specific_after()
+  silent call s:SetRG()
 endf
 
 func! s:Set_user_bindings () abort
@@ -105,4 +106,19 @@ command CleanCR call s:CleanCR()
 
 " Ensure command
 let s:sys = s:CallCleanCommand('uname') 
+
+func! s:SetRG () abort
+  if executable('rg')
+    " In-built grep functionality
+    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ -H\ --hidden\ -g\ '!.git' 
+    set grepformat=%f:%l:%c:%m
+
+    " For Ctrl-P plugin
+    let g:crtlp_user_command = 'rg %s --files --color=never --glob "!.git"'
+    " No need for caching with rg
+    let g:ctrlp_use_caching = 0
+    let g:ctrlp_working_path_mode 'ra' 
+    let g:ctrlp_clear_cache_on_exit = 1 
+  endif
+endf
 
