@@ -63,3 +63,5 @@ default_height = 30
 [[custom_plugins]]
   repo = "mg979/vim-visual-multi"
 
+[[custom_plugins]]
+  repo = "dyng/ctrlsf.vim"
