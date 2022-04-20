@@ -117,7 +117,7 @@ func! s:SetRG () abort
     let g:crtlp_user_command = 'rg %s --files --color=never --glob "!.git"'
     " No need for caching with rg
     let g:ctrlp_use_caching = 0
-    let g:ctrlp_working_path_mode 'ra' 
+    let g:ctrlp_working_path_mode = 'ra' 
     let g:ctrlp_clear_cache_on_exit = 1 
   endif
 endf
