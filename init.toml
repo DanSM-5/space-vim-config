@@ -30,14 +30,22 @@
 
 # Enable autocomplete layer
 [[layers]]
-name = 'autocomplete'
-auto_completion_return_key_behavior = "complete"
-auto_completion_tab_key_behavior = "smart"
+  name = 'autocomplete'
+  auto_completion_return_key_behavior = "complete"
+  auto_completion_tab_key_behavior = "smart"
 
 [[layers]]
-name = 'shell'
-default_position = 'top'
-default_height = 30
+  name = 'shell'
+  default_position = 'top'
+  default_height = 30
+
+[[layers]]
+  name = "fzf"
+
+[[layers]]
+  name = "git"
+  git_plugin = "fugitive"
+  git_diff_position = 'vsplit'
 
 [[custom_plugins]]
   repo = "tpope/vim-commentary"

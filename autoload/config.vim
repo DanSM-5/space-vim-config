@@ -119,6 +119,12 @@ func! s:SetRG () abort
     let g:ctrlp_use_caching = 0
     let g:ctrlp_working_path_mode = 'ra' 
     let g:ctrlp_clear_cache_on_exit = 1 
+
+    " For SpaceVim search options
+    let profile = SpaceVim#mapping#search#getprofile('rg')
+    let default_opt = profile.default_opts + ['--no-ignore-vcs']
+    call SpaceVim#mapping#search#profile({ 'rg': { 'default_opts': default_opt } })
+
   endif
 endf
 
