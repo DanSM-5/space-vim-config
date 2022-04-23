@@ -79,8 +79,13 @@ func! s:Windows_conf_after () abort
   let g:system_copy#copy_command = 'clip.exe'
 endf
 
-" WSL specific
+" **************  WSL specific ********************
 func! s:WSL_conf_before () abort
+  let g:rooter_change_directory_for_non_project_files = 'current'
+  let g:rooter_patterns = ["!.SpaceVim.d/", ".git/", "/home/".$USER."/.SpaceVim.d"]
+
+  " Prevent changing to .SpaceVim.d directory on /mnt/c/
+  let g:spacevim_project_rooter_patterns = ["!.SpaceVim.d/"] + g:spacevim_project_rooter_patterns 
   " Not implemented
   " let g:spacevim_custom_plugins = [
   "   \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
