@@ -24,10 +24,6 @@ endf
 func! s:SetConfigurations () abort
   silent call s:SetRG()
   silent call s:SetCtrlSFM()
-
-  " Define user commands
-  command -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
-  command CleanCR call s:CleanCR()
 endf
 
 func! s:SetBufferOptions () abort
@@ -196,3 +192,6 @@ endf
 
 " endf
 
+" Define user commands
+command -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
+command CleanCR call s:CleanCR()
