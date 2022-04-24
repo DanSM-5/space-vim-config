@@ -47,11 +47,11 @@
   git_plugin = "fugitive"
   git_diff_position = 'vsplit'
 
-[[layers]]
-  name = "lang#autohotkey"
+# [[layers]]
+#   name = "lang#autohotkey"
 
-[[layers]]
-  name = "lang#javascript"
+# [[layers]]
+#   name = "lang#javascript"
 [[layers]]
   name = "lang#toml"
 
