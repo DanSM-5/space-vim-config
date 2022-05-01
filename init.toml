@@ -6,6 +6,10 @@
 # License: GPLv3
 #=============================================================================
 
+# Clean cache of unused plugins
+# call map(dein#check_clean(), "delete(v:val, 'rf')")
+# call dein#recache_runtimepath()
+
 # All SpaceVim option below [option] section
 [options]
     # set spacevim theme. by default colorscheme layer is not loaded,
@@ -27,12 +31,16 @@
     guifont = "DroidSansMono NF:h18" 
     bootstrap_before = "config#before"
     bootstrap_after = "config#after"
+    # autocomplete_method = "coc"
 
 # Enable autocomplete layer
 [[layers]]
   name = 'autocomplete'
   auto_completion_return_key_behavior = "complete"
   auto_completion_tab_key_behavior = "smart"
+  auto_completion_delay = 50
+  auto_completion_complete_with_key_sequence = "nil"
+  auto_completion_complete_with_key_sequence_delay = 0.1
 
 [[layers]]
   name = 'shell'
