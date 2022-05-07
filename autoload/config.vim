@@ -36,6 +36,9 @@ endf
 func! s:Set_user_bindings () abort
   silent call s:SetVimSystemCopyMaps()
   silent call s:SetCtrlSFMaps()
+
+  " Quick buffer overview an completion to change
+  nnoremap gb :ls<CR>:b<Space>
 endf
 
 func! s:Set_os_specific_before () abort
