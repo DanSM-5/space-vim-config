@@ -24,6 +24,7 @@ endf
 func! s:SetConfigurations () abort
   silent call s:SetRG()
   silent call s:SetCtrlSFM()
+  silent call s:DefineCommands()
 endf
 
 func! s:SetBufferOptions () abort
@@ -36,6 +37,7 @@ endf
 func! s:Set_user_bindings () abort
   silent call s:SetVimSystemCopyMaps()
   silent call s:SetCtrlSFMaps()
+  silent call s:MoveLinesBlockMaps()
 
   " Quick buffer overview an completion to change
   nnoremap gb :ls<CR>:b<Space>
@@ -195,6 +197,26 @@ endf
 
 " endf
 
-" Define user commands
-command -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
-command CleanCR call s:CleanCR()
+func! s:DefineCommands () abort
+  " Define user commands
+  command -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
+  command CleanCR call s:CleanCR()
+endf
+
+func! s:MoveLinesBlockMaps () abort
+  " <A-UP> | <Esc>[1;3A
+  " <A-Down> | <Esc>[1;3B
+
+  " move selected lines up one line
+  xnoremap <Esc>[1;3A :m-2<CR>gv=gv
+
+  " move selected lines down one line
+  xnoremap <Esc>[1;3B :m'>+<CR>gv=gv
+
+  " move current line up one line
+  nnoremap <Esc>[1;3A :<C-u>m-2<CR>==
+
+  " move current line down one line
+  nnoremap <Esc>[1;3B :<C-u>m+<CR>==
+endf
+
