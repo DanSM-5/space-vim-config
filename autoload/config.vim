@@ -37,7 +37,6 @@ endf
 func! s:Set_user_bindings () abort
   silent call s:SetVimSystemCopyMaps()
   silent call s:SetCtrlSFMaps()
-  silent call s:MoveLinesBlockMaps()
 
   " Quick buffer overview an completion to change
   nnoremap gb :ls<CR>:b<Space>
@@ -94,7 +93,12 @@ endf
 func! s:Windows_conf_after () abort
   " Set paste command with pwsh core
   let g:system_copy#paste_command = 'pbpaste.exe'
-  let g:system_copy#copy_command = 'clip.exe'
+  let g:system_copy#copy_command = 'pbcopy.exe'
+  if has("gui_win32")
+    silent call s:MoveLinesBlockMapsGvim()
+  else
+    silent call s:MoveLinesBlockMapsWin()
+  endif
 endf
 
 " **************  WSL specific ********************
@@ -113,7 +117,8 @@ endf
 func! s:WSL_conf_after () abort
   " Set copy and paste commands
   let g:system_copy#paste_command = 'pbpaste.exe'
-  let g:system_copy#copy_command = 'clip.exe'
+  let g:system_copy#copy_command = 'pbcopy.exe'
+  silent call s:MoveLinesBlockMapsLinux()
 endf
 
 func! s:CallCleanCommand (comm) abort
@@ -203,7 +208,7 @@ func! s:DefineCommands () abort
   command CleanCR call s:CleanCR()
 endf
 
-func! s:MoveLinesBlockMaps () abort
+func! s:MoveLinesBlockMapsLinux () abort
   " <A-UP> | <Esc>[1;3A
   " <A-Down> | <Esc>[1;3B
 
@@ -218,5 +223,41 @@ func! s:MoveLinesBlockMaps () abort
 
   " move current line down one line
   nnoremap <Esc>[1;3B :<C-u>m+<CR>==
+endf
+
+func! s:MoveLinesBlockMapsGvim () abort
+  " move selected lines up one line
+  xnoremap <A-Up> :m-2<CR>gv=gv
+
+  " move selected lines down one line
+  xnoremap <A-Down> :m'>+<CR>gv=gv
+
+  " move current line up one line
+  nnoremap <A-Up> :<C-u>m-2<CR>==
+
+  " move current line down one line
+  nnoremap <A-Down> :<C-u>m+<CR>==
+endf
+
+func! s:MoveLinesBlockMapsWin () abort
+  " xnoremap <silent> <Plug>MoveLineUpX :call <SID>MoveLineUpVisual()
+  " xnoremap <silent> <Plug>MoveLineDownX m'>+<CR>gv=gv
+  " nnoremap <silent> <Plug>MoveLineUpN <C-U>m-2<CR>==
+  " nnoremap <silent> <Plug>MoveLineDownN <C-U>m+<CR>==
+
+  " move selected lines up one line
+  xnoremap <C-K> :m-2<CR>gv=gv
+
+  " move selected lines down one line
+  xnoremap <C-J> :m'>+<CR>gv=gv
+
+  " move current line up one line
+  nnoremap <C-K> :<C-u>m-2<CR>==
+
+  " move current line down one line
+  nnoremap <C-J> :<C-u>m+<CR>==
+
+  Repeatable nnoremap mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap mld :<C-U>m+<CR>==
 endf
 

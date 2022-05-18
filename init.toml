@@ -89,3 +89,6 @@
 
 [[custom_plugins]]
   repo = "dyng/ctrlsf.vim"
+
+[[custom_plugins]]
+  repo = "kreskij/Repeatable.vim"
