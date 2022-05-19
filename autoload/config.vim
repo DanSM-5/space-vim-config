@@ -22,6 +22,7 @@ func! config#after () abort
 endf
 
 func! s:SetConfigurations () abort
+  silent call s:SetFZF()
   silent call s:SetRG()
   silent call s:SetCtrlSFM()
   silent call s:DefineCommands()
@@ -177,6 +178,14 @@ func! s:SetCtrlSFM () abort
     \ "chgmode" : "M",
     \ "stop"    : "<C-C>",
     \ }
+endf
+
+func! s:SetFZF () abort
+  command! -bang -nargs=? -complete=dir Files
+    \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+
+  command! -bang -nargs=? -complete=dir FzfFiles
+    \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
 endf
 
 func! s:SetVimSystemCopyMaps () abort 

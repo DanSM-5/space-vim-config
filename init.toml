@@ -85,6 +85,9 @@
   repo = "junegunn/fzf"
 
 [[custom_plugins]]
+  repo = "junegunn/fzf.vim"
+
+[[custom_plugins]]
   repo = "mg979/vim-visual-multi"
 
 [[custom_plugins]]
