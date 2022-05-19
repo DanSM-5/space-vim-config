@@ -181,11 +181,13 @@ func! s:SetCtrlSFM () abort
 endf
 
 func! s:SetFZF () abort
+  let g:fzf_preview_window = ['right:60%', 'ctrl-/']
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
 
   command! -bang -nargs=? -complete=dir FzfFiles
-    \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+    \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+    " \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
 endf
 
 func! s:SetVimSystemCopyMaps () abort 
