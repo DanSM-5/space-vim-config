@@ -213,8 +213,8 @@ endf
 
 func! s:DefineCommands () abort
   " Define user commands
-  command -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
-  command CleanCR call s:CleanCR()
+  command! -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
+  command! CleanCR call s:CleanCR()
 endf
 
 func! s:MoveLinesBlockMapsLinux () abort
