@@ -9,7 +9,7 @@ let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
 
 func! config#before () abort
   " Ensure command
-  let g:host_os = s:CallCleanCommand('uname') 
+  let g:host_os = s:CurrentOS() 
 
   silent call s:Set_os_specific_before()
   silent call s:SetBufferOptions()
@@ -44,7 +44,7 @@ func! s:Set_user_bindings () abort
 endf
 
 func! s:Set_os_specific_before () abort
-  let os = s:CurrentOS()
+  let os = g:host_os
   if g:wsl_host
     " We are inside wsl
     silent call s:WSL_conf_before()
@@ -54,7 +54,7 @@ func! s:Set_os_specific_before () abort
 endf
 
 func! s:Set_os_specific_after () abort
-  let os = s:CurrentOS()
+  let os = g:host_os
   if g:wsl_host
     " We are inside wsl
     silent call s:WSL_conf_after()
@@ -64,7 +64,7 @@ func! s:Set_os_specific_after () abort
 endf
 
 function! s:CurrentOS ()
-  let os = g:host_os " substitute(system('uname'), '\n', '', '')
+  let os = substitute(system('uname'), '\n', '', '')
   let known_os = 'unknown'
   if has("gui_mac") || os ==? 'Darwin'
     let known_os = s:mac
@@ -181,13 +181,17 @@ func! s:SetCtrlSFM () abort
 endf
 
 func! s:SetFZF () abort
-  let g:fzf_preview_window = ['right:60%', 'ctrl-/']
+  " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
 
-  command! -bang -nargs=? -complete=dir FzfFiles
+  if g:host_os ==? s:windows
+    command! -bang -nargs=? -complete=dir FzfFiles
+      \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+  else
+    command! -bang -nargs=? -complete=dir FzfFiles
     \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
-    " \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+  endif
 endf
 
 func! s:SetVimSystemCopyMaps () abort 
@@ -256,17 +260,31 @@ func! s:MoveLinesBlockMapsWin () abort
   " nnoremap <silent> <Plug>MoveLineUpN <C-U>m-2<CR>==
   " nnoremap <silent> <Plug>MoveLineDownN <C-U>m+<CR>==
 
-  " move selected lines up one line
-  xnoremap <C-K> :m-2<CR>gv=gv
+  if has('nvim')
+    " move selected lines up one line
+    xnoremap <A-Up> :m-2<CR>gv=gv
 
-  " move selected lines down one line
-  xnoremap <C-J> :m'>+<CR>gv=gv
+    " move selected lines down one line
+    xnoremap <A-Down> :m'>+<CR>gv=gv
 
-  " move current line up one line
-  nnoremap <C-K> :<C-u>m-2<CR>==
+    " move current line up one line
+    nnoremap <A-Up> :<C-u>m-2<CR>==
 
-  " move current line down one line
-  nnoremap <C-J> :<C-u>m+<CR>==
+    " move current line down one line
+    nnoremap <A-Down> :<C-u>m+<CR>==
+  else
+    " move selected lines up one line
+    xnoremap <C-K> :m-2<CR>gv=gv
+
+    " move selected lines down one line
+    xnoremap <C-J> :m'>+<CR>gv=gv
+
+    " move current line up one line
+    nnoremap <C-K> :<C-u>m-2<CR>==
+
+    " move current line down one line
+    nnoremap <C-J> :<C-u>m+<CR>==
+  endif
 
   Repeatable nnoremap mlu :<C-U>m-2<CR>==
   Repeatable nnoremap mld :<C-U>m+<CR>==
