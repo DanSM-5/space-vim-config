@@ -184,11 +184,18 @@ func! s:SetCtrlSFM () abort
     \ }
 endf
 
+func! GetCurrentBufferPath () abort
+   return trim(expand('%:p:h'))
+endf
+
 func! GitFZF () abort
-  let path = trim(system('cd '.shellescape(expand('%:p:h')).' && git rev-parse --show-toplevel'))
-  " echo 'FZF ' . path
+  let gitpath = trim(system('cd '.shellescape(expand('%:p:h')).' && git rev-parse --show-toplevel'))
   " exe 'FZF ' . path
-  return path
+  if path
+    return gitpath
+  else
+    return GetCurrentBufferPath()
+  endif
 endf
 
 func! s:SetFZF () abort
@@ -203,13 +210,11 @@ func! s:SetFZF () abort
       \ call fzf#vim#files(GitFZF(), {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
   else
     command! -bang -nargs=? -complete=dir FzfFiles
-    \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-    \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
-    " command! GitDir call GitFZF()
+      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
     unmap <C-P>
     nnoremap <C-P> :GitFZF<CR>
-    " nnoremap <C-[> :GitDir<CR>
   endif
 endf
 
