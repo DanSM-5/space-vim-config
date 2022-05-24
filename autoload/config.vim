@@ -13,19 +13,23 @@ func! config#before () abort
 
   silent call s:Set_os_specific_before()
   silent call s:SetBufferOptions()
-  silent call s:SetConfigurations()
+  silent call s:SetConfigurationsBefore()
 endf
 
 func! config#after () abort
   silent call s:Set_user_bindings()
   silent call s:Set_os_specific_after()
+  silent call s:SetConfigurationsAfter()
 endf
 
-func! s:SetConfigurations () abort
-  silent call s:SetFZF()
+func! s:SetConfigurationsBefore () abort
   silent call s:SetRG()
   silent call s:SetCtrlSFM()
   silent call s:DefineCommands()
+endf
+
+func! s:SetConfigurationsAfter () abort
+  silent call s:SetFZF()
 endf
 
 func! s:SetBufferOptions () abort
@@ -180,17 +184,32 @@ func! s:SetCtrlSFM () abort
     \ }
 endf
 
+func! GitFZF () abort
+  let path = trim(system('cd '.shellescape(expand('%:p:h')).' && git rev-parse --show-toplevel'))
+  " echo 'FZF ' . path
+  " exe 'FZF ' . path
+  return path
+endf
+
 func! s:SetFZF () abort
-  " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
+  let g:fzf_preview_window = ['right:60%', 'ctrl-/']
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
 
   if g:host_os ==? s:windows
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+    command! -bang -nargs=? -complete=dir GitFZF
+      \ call fzf#vim#files(GitFZF(), {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
   else
     command! -bang -nargs=? -complete=dir FzfFiles
     \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+    command! -bang -nargs=? -complete=dir GitFZF
+    \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+    " command! GitDir call GitFZF()
+    unmap <C-P>
+    nnoremap <C-P> :GitFZF<CR>
+    " nnoremap <C-[> :GitDir<CR>
   endif
 endf
 
