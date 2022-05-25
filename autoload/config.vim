@@ -191,7 +191,7 @@ endf
 func! GitFZF () abort
   let gitpath = trim(system('cd '.shellescape(expand('%:p:h')).' && git rev-parse --show-toplevel'))
   " exe 'FZF ' . path
-  if path
+  if gitpath
     return gitpath
   else
     return GetCurrentBufferPath()
