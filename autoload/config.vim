@@ -54,6 +54,8 @@ func! s:Set_os_specific_before () abort
     silent call s:WSL_conf_before()
   elseif os == s:windows
     silent call s:Windows_conf_before()
+  elseif os == s:mac
+    silent call s:Mac_conf_before()
   endif
 endf
 
@@ -64,6 +66,8 @@ func! s:Set_os_specific_after () abort
     silent call s:WSL_conf_after()
   elseif os == s:windows
     silent call s:Windows_conf_after()
+  elseif os == s:mac
+    silent call s:Mac_conf_after()
   endif
 endf
 
@@ -125,6 +129,19 @@ func! s:WSL_conf_after () abort
   let g:system_copy#copy_command = 'pbcopy.exe'
   silent call s:MoveLinesBlockMapsLinux()
 endf
+
+func! s:Mac_conf_before () abort
+  " Run before
+endf
+
+func! s:Mac_conf_after () abort
+  if $TERM_PROGRAM =~? 'iTerm.app'
+    " do not remap
+  else
+    silent call s:MoveLinesBlockMapsMac()
+  endif
+endf
+
 
 func! s:CallCleanCommand (comm) abort
   return substitute(system(a:comm), s:cleanrgx, '', '')
@@ -276,6 +293,22 @@ func! s:MoveLinesBlockMapsGvim () abort
 
   " move current line down one line
   nnoremap <A-Down> :<C-u>m+<CR>==
+endf
+
+func! s:MoveLinesBlockMapsMac () abort
+  if has('nvim')
+    " move selected lines up one line
+    xnoremap <A-Up> :m-2<CR>gv=gv
+
+    " move selected lines down one line
+    xnoremap <A-Down> :m'>+<CR>gv=gv
+
+    " move current line up one line
+    nnoremap <A-Up> :<C-u>m-2<CR>==
+
+    " move current line down one line
+    nnoremap <A-Down> :<C-u>m+<CR>==
+  endif
 endf
 
 func! s:MoveLinesBlockMapsWin () abort
