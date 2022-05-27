@@ -142,7 +142,6 @@ func! s:Mac_conf_after () abort
   endif
 endf
 
-
 func! s:CallCleanCommand (comm) abort
   return substitute(system(a:comm), s:cleanrgx, '', '')
 endf
