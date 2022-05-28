@@ -11,6 +11,8 @@ func! config#before () abort
   " Ensure command
   let g:host_os = s:CurrentOS() 
 
+  " Can be used to set different undodir between vim and nvim
+  " silent call s:SetUndodir()
   silent call s:Set_os_specific_before()
   silent call s:SetBufferOptions()
   silent call s:SetConfigurationsBefore()
@@ -342,5 +344,13 @@ func! s:MoveLinesBlockMapsWin () abort
 
   Repeatable nnoremap mlu :<C-U>m-2<CR>==
   Repeatable nnoremap mld :<C-U>m+<CR>==
+endf
+
+func s:SetUndodir () abort
+  if has('nvim')
+    set undodir=~/.config/nvim/undodir
+  else
+    set undodir=~/.vim/undodir
+  endif
 endf
 
