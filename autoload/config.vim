@@ -2,8 +2,10 @@
 let s:mac = 'mac'
 let s:windows = 'windows'
 let s:linux = 'linux'
+let s:termux = 'termux'
 let s:wsl = 'wsl'
 let g:wsl_host = 0
+let g:termux_host = 0
 " if shell is powershell.exe, system calls will be utf16 files with BOM
 let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
 
@@ -54,10 +56,12 @@ func! s:Set_os_specific_before () abort
   if g:wsl_host
     " We are inside wsl
     silent call s:WSL_conf_before()
+  elseif g:termux_host
+    silent call s:Termux_conf_before()
   elseif os == s:windows
     silent call s:Windows_conf_before()
   elseif os == s:mac
-    silent call s:Mac_conf_before()
+    " silent call s:Mac_conf_before()
   endif
 endf
 
@@ -66,6 +70,8 @@ func! s:Set_os_specific_after () abort
   if g:wsl_host
     " We are inside wsl
     silent call s:WSL_conf_after()
+  elseif g:termux_host
+    silent call s:Termux_conf_after()
   elseif os == s:windows
     silent call s:Windows_conf_after()
   elseif os == s:mac
@@ -84,6 +90,11 @@ function! s:CurrentOS ()
     let known_os = s:linux
     if system('uname.exe') =~ 'MSYS'
       let g:wsl_host = 1
+    elseif $IS_TERMUX =~ 'true'
+      " Don't want to relay on config settings but it will do for now
+      " untested way: command -v termux-setup-storage &> /dev/null
+      " the termux-setup-storage should only exist on termux
+      let g:termux_host = 1
     endif
   else
     exe "normal \<Esc>"
@@ -92,7 +103,7 @@ function! s:CurrentOS ()
   return known_os
 endfunction
 
-" Windows specific
+" **************  WINDOWS specific ********************
 func! s:Windows_conf_before () abort
   " Set pwsh or powershell
   " exe 'set shell='.fnameescape("pwsh -ExecutionPolicy Bypass")
@@ -132,6 +143,27 @@ func! s:WSL_conf_after () abort
   silent call s:MoveLinesBlockMapsLinux()
 endf
 
+" **************  TERMUX specific ********************
+func! s:Termux_conf_before () abort
+  let g:rooter_change_directory_for_non_project_files = 'current'
+  " let g:rooter_patterns = ["!.SpaceVim.d/", '".git/", '"/home/".$USER."/.SpaceVim.d"]
+
+  " Prevent changing to .SpaceVim.d directory on /mnt/c/
+  let g:spacevim_project_rooter_patterns = ["!.SpaceVim.d/"] + g:spacevim_project_rooter_patterns 
+  " Not implemented
+  " let g:spacevim_custom_plugins = [
+  "   \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
+  "   \ ]
+endf
+
+func! s:Termux_conf_after () abort
+  " Set copy and paste commands
+  let g:system_copy#paste_command = 'termux-clipboard-get'
+  let g:system_copy#copy_command = 'termux-clipboard-set'
+  " silent call s:MoveLinesBlockMapsLinux()
+endf
+
+" **************  MAC specific ********************
 func! s:Mac_conf_before () abort
   " Run before
 endf
@@ -155,11 +187,11 @@ endf
 func! s:SetRG () abort
   if executable('rg')
     " In-built grep functionality
-    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ -H\ --hidden\ -g\ '!.git' 
+    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ -H\ --hidden\ -g\ '!.git'\ -g\ '!node_modules'
     set grepformat=%f:%l:%c:%m
 
     " For Ctrl-P plugin
-    let g:crtlp_user_command = 'rg %s --files --color=never --glob "!.git"'
+    let g:crtlp_user_command = 'rg %s --files --color=never --glob "!.git" --glob "!node_modules"'
     " No need for caching with rg
     let g:ctrlp_use_caching = 0
     
@@ -177,7 +209,7 @@ func! s:SetCtrlSFM () abort
   let g:ctrlsf_default_root = 'cwd'
   let g:ctrlsf_backend = 'rg'
   let g:ctrlsf_extra_backend_args = {
-      \ 'rg': '--hidden --glob "!.git"'
+      \ 'rg': '--hidden --glob "!.git" --glob "!node_modules"'
       \ }
   let g:ctrlsf_ignore_dir = ['.git', 'node_modules']
 
@@ -223,7 +255,7 @@ func! s:SetFZF () abort
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
 
-  if g:host_os ==? s:windows
+  if g:host_os ==? s:windows || g:termux_host
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
@@ -275,21 +307,21 @@ endf
 func! s:MoveLinesBlockMapsLinux () abort
   " <A-UP> | <Esc>[1;3A
   " <A-Down> | <Esc>[1;3B
-
-  " move selected lines up one line
-  xnoremap <Esc>[1;3A :m-2<CR>gv=gv
-
-  " move selected lines down one line
-  xnoremap <Esc>[1;3B :m'>+<CR>gv=gv
-
-  " move current line up one line
-  nnoremap <Esc>[1;3A :<C-u>m-2<CR>==
-
-  " move current line down one line
-  nnoremap <Esc>[1;3B :<C-u>m+<CR>==
+  silent call s:RemapAltUpDownSpecial()
 endf
 
 func! s:MoveLinesBlockMapsGvim () abort
+  silent call s:RemapAltUpDownNormal()
+endf
+
+func! s:MoveLinesBlockMapsMac () abort
+  " Not needed remap on regular vim
+  if has('nvim')
+    silent call s:RemapAltUpDownNormal()
+  endif
+endf
+
+func! s:RemapAltUpDownNormal () abort
   " move selected lines up one line
   xnoremap <A-Up> :m-2<CR>gv=gv
 
@@ -303,20 +335,18 @@ func! s:MoveLinesBlockMapsGvim () abort
   nnoremap <A-Down> :<C-u>m+<CR>==
 endf
 
-func! s:MoveLinesBlockMapsMac () abort
-  if has('nvim')
-    " move selected lines up one line
-    xnoremap <A-Up> :m-2<CR>gv=gv
+func! s:RemapAltUpDownSpecial () abort
+  " move selected lines up one line
+  xnoremap <Esc>[1;3A :m-2<CR>gv=gv
 
-    " move selected lines down one line
-    xnoremap <A-Down> :m'>+<CR>gv=gv
+  " move selected lines down one line
+  xnoremap <Esc>[1;3B :m'>+<CR>gv=gv
 
-    " move current line up one line
-    nnoremap <A-Up> :<C-u>m-2<CR>==
+  " move current line up one line
+  nnoremap <Esc>[1;3A :<C-u>m-2<CR>==
 
-    " move current line down one line
-    nnoremap <A-Down> :<C-u>m+<CR>==
-  endif
+  " move current line down one line
+  nnoremap <Esc>[1;3B :<C-u>m+<CR>==
 endf
 
 func! s:MoveLinesBlockMapsWin () abort
