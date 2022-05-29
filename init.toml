@@ -65,18 +65,22 @@
 
 [[custom_plugins]]
   repo = "tpope/vim-commentary"
+  merged = false
 
 [[custom_plugins]]
   repo = "tpope/vim-surround"
+  merged = false
 
 [[custom_plugins]]
   repo = "tpope/vim-fugitive"
 
 [[custom_plugins]]
   repo = "inkarkat/vim-ReplaceWithRegister"
+  merged = false
 
 [[custom_plugins]]
   repo = "christoomey/vim-sort-motion"
+  merged = false
 
 [[custom_plugins]]
   repo = "DanSM-5/vim-system-copy"
