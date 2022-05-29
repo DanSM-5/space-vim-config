@@ -251,28 +251,38 @@ func! GitFZF () abort
 endf
 
 func! s:SetFZF () abort
-  let g:fzf_preview_window = ['right:60%', 'ctrl-/']
+  " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
+  let s:preview_options = {'options': ['--preview-window=right,60%', '--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}
+  let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] }
+  let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] }
+
   command! -bang -nargs=? -complete=dir Files
-    \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+    \ call fzf#vim#files(<q-args>, s:preview_options, <bang>0)
 
   if g:host_os ==? s:windows || g:termux_host
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+      \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), {'options': ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}, <bang>0)
+      \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
   elseif g:host_os ==? s:mac
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
   else
     " Linux
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
+      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     " unmap <C-P>
     nnoremap <C-P> :GitFZF<CR>
+  endif
+  if has('nvim')
+    nnoremap <A-p> :GitFZF!<CR>
+  else
+  " <A-p> = <Esc>[p in vim linux
+    nnoremap <Esc>[p :GitFZF!<CR>
   endif
 endf
 
@@ -300,23 +310,6 @@ func! s:DefineCommands () abort
   " Define user commands
   command! -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
   command! CleanCR call s:CleanCR()
-endf
-
-func! s:MoveLinesBlockMapsLinux () abort
-  " <A-UP> | <Esc>[1;3A
-  " <A-Down> | <Esc>[1;3B
-  silent call s:RemapAltUpDownSpecial()
-endf
-
-func! s:MoveLinesBlockMapsGvim () abort
-  silent call s:RemapAltUpDownNormal()
-endf
-
-func! s:MoveLinesBlockMapsMac () abort
-  " Not needed remap on regular vim
-  if has('nvim')
-    silent call s:RemapAltUpDownNormal()
-  endif
 endf
 
 func! s:RemapAltUpDownNormal () abort
@@ -347,25 +340,7 @@ func! s:RemapAltUpDownSpecial () abort
   nnoremap <Esc>[1;3B :<C-u>m+<CR>==
 endf
 
-func! s:MoveLinesBlockMapsWin () abort
-  " xnoremap <silent> <Plug>MoveLineUpX :call <SID>MoveLineUpVisual()
-  " xnoremap <silent> <Plug>MoveLineDownX m'>+<CR>gv=gv
-  " nnoremap <silent> <Plug>MoveLineUpN <C-U>m-2<CR>==
-  " nnoremap <silent> <Plug>MoveLineDownN <C-U>m+<CR>==
-
-  if has('nvim')
-    " move selected lines up one line
-    xnoremap <A-Up> :m-2<CR>gv=gv
-
-    " move selected lines down one line
-    xnoremap <A-Down> :m'>+<CR>gv=gv
-
-    " move current line up one line
-    nnoremap <A-Up> :<C-u>m-2<CR>==
-
-    " move current line down one line
-    nnoremap <A-Down> :<C-u>m+<CR>==
-  else
+func! s:RemapAltUpDownJK () abort
     " move selected lines up one line
     xnoremap <C-K> :m-2<CR>gv=gv
 
@@ -377,10 +352,34 @@ func! s:MoveLinesBlockMapsWin () abort
 
     " move current line down one line
     nnoremap <C-J> :<C-u>m+<CR>==
+endf
+
+func! s:MoveLinesBlockMapsWin () abort
+  if has('nvim')
+    silent call s:RemapAltUpDownNormal()
+  else
+    silent call s:RemapAltUpDownJK()
   endif
 
   Repeatable nnoremap mlu :<C-U>m-2<CR>==
   Repeatable nnoremap mld :<C-U>m+<CR>==
+endf
+
+func! s:MoveLinesBlockMapsLinux () abort
+  " <A-UP> | <Esc>[1;3A
+  " <A-Down> | <Esc>[1;3B
+  silent call s:RemapAltUpDownSpecial()
+endf
+
+func! s:MoveLinesBlockMapsGvim () abort
+  silent call s:RemapAltUpDownNormal()
+endf
+
+func! s:MoveLinesBlockMapsMac () abort
+  " Not needed remap on regular vim
+  if has('nvim')
+    silent call s:RemapAltUpDownNormal()
+  endif
 endf
 
 func s:SetUndodir () abort
