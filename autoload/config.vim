@@ -266,6 +266,7 @@ func! s:SetFZF () abort
     command! -bang -nargs=? -complete=dir GitFZF
       \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
   else
+    # Linux
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, fzf#vim#with_preview({ 'options': ['--height=80%'] }), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
@@ -294,9 +295,6 @@ func! s:SetCtrlSFMaps () abort
   nnoremap <C-M>t :CtrlSFToggle<CR>
   inoremap <C-M>t <Esc>:CtrlSFToggle<CR>
 endf
-" func! s:SetVimVisualMulti () abort
-
-" endf
 
 func! s:DefineCommands () abort
   " Define user commands
