@@ -80,6 +80,7 @@
 
 [[custom_plugins]]
   repo = "DanSM-5/vim-system-copy"
+  merged = false
 
 [[custom_plugins]]
   repo = "junegunn/fzf"
