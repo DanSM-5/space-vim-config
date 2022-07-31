@@ -112,6 +112,7 @@ func! s:Windows_conf_before () abort
   set shellcmdflag=/c
 
   let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
+  " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
 endf
 
 func! s:Windows_conf_after () abort
