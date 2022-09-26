@@ -8,6 +8,7 @@ let g:wsl_host = 0
 let g:termux_host = 0
 " if shell is powershell.exe, system calls will be utf16 files with BOM
 let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
+let s:rg_args = ' --column --line-number --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
 func! config#before () abort
   " Ensure command
@@ -110,6 +111,9 @@ func! s:Windows_conf_before () abort
   " set shellcmdflag=-c
   set shell=cmd
   set shellcmdflag=/c
+
+  let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
+  " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
 endf
 
 func! s:Windows_conf_after () abort
@@ -125,6 +129,7 @@ endf
 
 " **************  WSL specific ********************
 func! s:WSL_conf_before () abort
+  g:python3_host_prog = '/usr/bin/env python3'
   let g:rooter_change_directory_for_non_project_files = 'current'
   let g:rooter_patterns = ["!.SpaceVim.d/", ".git/", "/home/".$USER."/.SpaceVim.d"]
 
@@ -242,7 +247,7 @@ func! GitFZF () abort
   let gitpath = trim(system('cd '.shellescape(expand('%:p:h')).' && git rev-parse --show-toplevel'))
   " exe 'FZF ' . path
   " For debug
-  " echohl String | echon ':D ' . path | echohl None
+  " echohl String | echon 'Path: ' . gitpath | echohl None
   if isdirectory(gitpath)
     return gitpath
   else
@@ -250,11 +255,29 @@ func! GitFZF () abort
   endif
 endf
 
+function! RipgrepFzf(query, fullscreen)
+  let command_fmt = 'rg' . s:rg_args . '-- %s || true'
+  let initial_command = printf(command_fmt, shellescape(a:query))
+  let reload_command = printf(command_fmt, '{q}')
+  let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
+  call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
+endfunction
+
 func! s:SetFZF () abort
   " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
   let s:preview_options = {'options': ['--preview-window=right,60%', '--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}
   let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] }
   let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] }
+
+  if executable('rg')
+
+    command! -bang -nargs=* Rg
+      \ call fzf#vim#grep(
+      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>), 1,
+      \   fzf#vim#with_preview(), <bang>0)
+
+    command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
+  endif
 
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, s:preview_options, <bang>0)
