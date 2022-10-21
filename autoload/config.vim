@@ -8,7 +8,7 @@ let g:wsl_host = 0
 let g:termux_host = 0
 " if shell is powershell.exe, system calls will be utf16 files with BOM
 let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
-let s:rg_args = ' --column --line-number --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
+let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
 func! config#before () abort
   " Ensure command
