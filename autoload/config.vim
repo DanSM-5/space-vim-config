@@ -266,8 +266,13 @@ endfunction
 func! s:SetFZF () abort
   " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
   let s:preview_options = {'options': ['--preview-window=right,60%', '--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}
+  " let s:preview_options_nvim = { 'window': { 'width': 0.9, 'height': 0.6 } }
+  let s:preview_options_nvim = {}
   let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] }
   let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] }
+  let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%', "--layout=reverse", "--info=inline", "--preview", 'bat --color=always {}'] }
+  " let s:preview_options_bang_nvim = { 'window': { 'up': '60%' } }
+  let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] }
 
   if executable('rg')
 
@@ -286,26 +291,41 @@ func! s:SetFZF () abort
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
+      \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang_fzf : s:preview_options, <bang>0)
+
   elseif g:host_os ==? s:mac
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
       \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+
   else
     " Linux
-    command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
-    command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
-    " unmap <C-P>
-    nnoremap <C-P> :GitFZF<CR>
+    if has('nvim')
+      command! -bang -nargs=? -complete=dir FzfFiles
+            \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
+      command! -bang -nargs=? -complete=dir GitFZF
+            \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang_nvim : s:preview_options_nvim), <bang>0)
+
+    else
+      command! -bang -nargs=? -complete=dir FzfFiles
+        \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+      command! -bang -nargs=? -complete=dir GitFZF
+        \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+    endif
+
   endif
+
+
   if has('nvim')
     nnoremap <A-p> :GitFZF!<CR>
+    nnoremap <C-P> :GitFZF<CR>
   else
-  " <A-p> = <Esc>[p in vim linux
-    nnoremap <Esc>[p :GitFZF!<CR>
+    " Set Alt (Mod) in vim
+    execute "set <M-p>=\ep"
+    nnoremap <A-p> :GitFZF!<CR>
+    " <A-p> = <Esc>[p in vim linux
+    " nnoremap <Esc>[p :GitFZF!<CR>
   endif
 endf
 
@@ -380,12 +400,16 @@ endf
 func! s:MoveLinesBlockMapsWin () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
+    Repeatable nnoremap mlu :<C-U>m-2<CR>==
+    Repeatable nnoremap mld :<C-U>m+<CR>==
   else
     silent call s:RemapAltUpDownJK()
+    if ! g:host_os ==? s:windows
+      Repeatable nnoremap mlu :<C-U>m-2<CR>==
+      Repeatable nnoremap mld :<C-U>m+<CR>==
+    endif
   endif
 
-  Repeatable nnoremap mlu :<C-U>m-2<CR>==
-  Repeatable nnoremap mld :<C-U>m+<CR>==
 endf
 
 func! s:MoveLinesBlockMapsLinux () abort
