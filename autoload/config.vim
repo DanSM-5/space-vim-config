@@ -265,15 +265,20 @@ function! RipgrepFzf(query, fullscreen)
 endfunction
 
 func! s:SetFZF () abort
+  " General options
+  let bind_opts = ['--bind', 'ctrl-/:toggle-preview,alt-up:preview-page-up,alt-down:preview-page-down']
+  let preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + bind_opts
+
   " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
-  let s:preview_options = {'options': ['--preview-window=right,60%', '--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}
   " let s:preview_options_nvim = { 'window': { 'width': 0.9, 'height': 0.6 } }
-  let s:preview_options_nvim = {}
-  let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] }
-  let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] }
-  let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%', "--layout=reverse", "--info=inline", "--preview", 'bat --color=always {}'] }
   " let s:preview_options_bang_nvim = { 'window': { 'up': '60%' } }
-  let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] }
+
+  let s:preview_options = {'options': ['--preview-window=right,60%'] + preview_opts }
+  let s:preview_options_nvim = { 'options': bind_opts }
+  let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] + bind_opts }
+  let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] + bind_opts }
+  let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%'] + preview_opts }
+  let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] + bind_opts }
 
   if executable('rg')
 
