@@ -299,11 +299,18 @@ func! s:SetFZF () abort
     command! -bang -nargs=? -complete=dir GitFZF
       \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang_fzf : s:preview_options, <bang>0)
 
+    if ! has('nvim')
+      execute "set <M-p>=\ep"
+    endif
   elseif g:host_os ==? s:mac
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
       \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+
+    if ! has('nvim')
+      execute "set <M-p>=π"
+    endif
 
   else
     " Linux
@@ -318,21 +325,16 @@ func! s:SetFZF () abort
         \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
       command! -bang -nargs=? -complete=dir GitFZF
         \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+
+      execute "set <M-p>=\ep"
     endif
 
   endif
 
 
-  if has('nvim')
-    nnoremap <A-p> :GitFZF!<CR>
-    nnoremap <C-P> :GitFZF<CR>
-  else
-    " Set Alt (Mod) in vim
-    execute "set <M-p>=\ep"
-    nnoremap <A-p> :GitFZF!<CR>
-    " <A-p> = <Esc>[p in vim linux
-    " nnoremap <Esc>[p :GitFZF!<CR>
-  endif
+  " Set key mappings
+  nnoremap <A-p> :GitFZF!<CR>
+  nnoremap <C-P> :GitFZF<CR>
 endf
 
 func! s:SetVimSystemCopyMaps () abort 
