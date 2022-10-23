@@ -192,11 +192,12 @@ endf
 func! s:SetRG () abort
   if executable('rg')
     " In-built grep functionality
-    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ -H\ --hidden\ -g\ '!.git'\ -g\ '!node_modules'
+    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ --no-ignore\ --hidden\ -g\ '!.git'\ -g\ '!node_modules'
     set grepformat=%f:%l:%c:%m
 
     " For Ctrl-P plugin
-    let g:crtlp_user_command = 'rg %s --files --color=never --glob "!.git" --glob "!node_modules"'
+    let g:crtlp_user_command = 'rg %s --no-ignore --hidden --files --color=never --glob "!.git" --glob "!node_modules" --follow'
+
     " No need for caching with rg
     let g:ctrlp_use_caching = 0
     
