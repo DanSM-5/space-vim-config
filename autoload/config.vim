@@ -8,7 +8,7 @@ let g:wsl_host = 0
 let g:termux_host = 0
 " if shell is powershell.exe, system calls will be utf16 files with BOM
 let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
-let s:rg_args = ' --column --line-number --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
+let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
 func! config#before () abort
   " Ensure command
@@ -192,11 +192,12 @@ endf
 func! s:SetRG () abort
   if executable('rg')
     " In-built grep functionality
-    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ -H\ --hidden\ -g\ '!.git'\ -g\ '!node_modules'
+    set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case\ --no-ignore\ --hidden\ -g\ '!.git'\ -g\ '!node_modules'
     set grepformat=%f:%l:%c:%m
 
     " For Ctrl-P plugin
-    let g:crtlp_user_command = 'rg %s --files --color=never --glob "!.git" --glob "!node_modules"'
+    let g:crtlp_user_command = 'rg %s --no-ignore --hidden --files --color=never --glob "!.git" --glob "!node_modules" --follow'
+
     " No need for caching with rg
     let g:ctrlp_use_caching = 0
     
@@ -264,10 +265,20 @@ function! RipgrepFzf(query, fullscreen)
 endfunction
 
 func! s:SetFZF () abort
+  " General options
+  let bind_opts = ['--bind', 'ctrl-/:toggle-preview,alt-up:preview-page-up,alt-down:preview-page-down']
+  let preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + bind_opts
+
   " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
-  let s:preview_options = {'options': ['--preview-window=right,60%', '--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}']}
-  let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] }
-  let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] }
+  " let s:preview_options_nvim = { 'window': { 'width': 0.9, 'height': 0.6 } }
+  " let s:preview_options_bang_nvim = { 'window': { 'up': '60%' } }
+
+  let s:preview_options = {'options': ['--preview-window=right,60%'] + preview_opts }
+  let s:preview_options_nvim = { 'options': bind_opts }
+  let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] + bind_opts }
+  let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] + bind_opts }
+  let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%'] + preview_opts }
+  let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] + bind_opts }
 
   if executable('rg')
 
@@ -286,27 +297,44 @@ func! s:SetFZF () abort
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
+      \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang_fzf : s:preview_options, <bang>0)
+
+    if ! has('nvim')
+      execute "set <M-p>=\ep"
+    endif
   elseif g:host_os ==? s:mac
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
       \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+
+    if ! has('nvim')
+      execute "set <M-p>=π"
+    endif
+
   else
     " Linux
-    command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
-    command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
-    " unmap <C-P>
-    nnoremap <C-P> :GitFZF<CR>
+    if has('nvim')
+      command! -bang -nargs=? -complete=dir FzfFiles
+            \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
+      command! -bang -nargs=? -complete=dir GitFZF
+            \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang_nvim : s:preview_options_nvim), <bang>0)
+
+    else
+      command! -bang -nargs=? -complete=dir FzfFiles
+        \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+      command! -bang -nargs=? -complete=dir GitFZF
+        \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+
+      execute "set <M-p>=\ep"
+    endif
+
   endif
-  if has('nvim')
-    nnoremap <A-p> :GitFZF!<CR>
-  else
-  " <A-p> = <Esc>[p in vim linux
-    nnoremap <Esc>[p :GitFZF!<CR>
-  endif
+
+
+  " Set key mappings
+  nnoremap <A-p> :GitFZF!<CR>
+  nnoremap <C-P> :GitFZF<CR>
 endf
 
 func! s:SetVimSystemCopyMaps () abort 
@@ -380,12 +408,16 @@ endf
 func! s:MoveLinesBlockMapsWin () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
+    Repeatable nnoremap mlu :<C-U>m-2<CR>==
+    Repeatable nnoremap mld :<C-U>m+<CR>==
   else
     silent call s:RemapAltUpDownJK()
+    if ! g:host_os ==? s:windows
+      Repeatable nnoremap mlu :<C-U>m-2<CR>==
+      Repeatable nnoremap mld :<C-U>m+<CR>==
+    endif
   endif
 
-  Repeatable nnoremap mlu :<C-U>m-2<CR>==
-  Repeatable nnoremap mld :<C-U>m+<CR>==
 endf
 
 func! s:MoveLinesBlockMapsLinux () abort
