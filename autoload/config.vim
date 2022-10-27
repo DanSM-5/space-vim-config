@@ -4,16 +4,54 @@ let s:windows = 'windows'
 let s:linux = 'linux'
 let s:termux = 'termux'
 let s:wsl = 'wsl'
-let g:wsl_host = 0
-let g:termux_host = 0
 " if shell is powershell.exe, system calls will be utf16 files with BOM
 let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
-func! config#before () abort
-  " Ensure command
-  let g:host_os = s:CurrentOS() 
+let g:bash = '/usr/bin/bash'
+let g:is_linux = 0
+let g:is_wsl = 0
+let g:is_gitbash = 0
+let g:is_windows = 0
+let g:is_mac = 0
+let g:is_termux = 0
 
+let g:host_os = 'unknown'
+
+function! s:CurrentOS ()
+  let os = substitute(system('uname'), '\n', '', '')
+  let known_os = 'unknown'
+  if has("gui_mac") || os ==? 'Darwin'
+    let g:is_mac = 1
+    let known_os = s:mac
+  elseif has('win32') || has("gui_win32")
+    let g:is_windows = 1
+    let known_os = s:windows
+  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS'
+    let g:is_windows = 1
+    let g:is_gitbash = 1
+    let known_os = s:windows
+  elseif os ==? 'Linux'
+    let known_os = s:linux
+    if system('cat /proc/version') =~ 'microsoft'
+      let g:is_wsl = 1
+    elseif $IS_TERMUX =~ 'true'
+      " Don't want to relay on config settings but it will do for now
+      " untested way: command -v termux-setup-storage &> /dev/null
+      " the termux-setup-storage should only exist on termux
+      let g:is_termux = 1
+    endif
+  else
+    exe "normal \<Esc>"
+    throw "unknown OS: " . os
+  endif
+  return known_os
+endfunction
+
+" Ensure command
+let g:host_os = s:CurrentOS() 
+
+func! config#before () abort
   " Can be used to set different undodir between vim and nvim
   " silent call s:SetUndodir()
   silent call s:Set_os_specific_before()
@@ -54,10 +92,10 @@ endf
 
 func! s:Set_os_specific_before () abort
   let os = g:host_os
-  if g:wsl_host
+  if g:is_wsl
     " We are inside wsl
     silent call s:WSL_conf_before()
-  elseif g:termux_host
+  elseif g:is_termux
     silent call s:Termux_conf_before()
   elseif os == s:windows
     silent call s:Windows_conf_before()
@@ -68,10 +106,10 @@ endf
 
 func! s:Set_os_specific_after () abort
   let os = g:host_os
-  if g:wsl_host
+  if g:is_wsl
     " We are inside wsl
     silent call s:WSL_conf_after()
-  elseif g:termux_host
+  elseif g:is_termux
     silent call s:Termux_conf_after()
   elseif os == s:windows
     silent call s:Windows_conf_after()
@@ -80,30 +118,6 @@ func! s:Set_os_specific_after () abort
   endif
 endf
 
-function! s:CurrentOS ()
-  let os = substitute(system('uname'), '\n', '', '')
-  let known_os = 'unknown'
-  if has("gui_mac") || os ==? 'Darwin'
-    let known_os = s:mac
-  elseif has('win32') || has("gui_win32") || os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS'
-    let known_os = s:windows
-  elseif os ==? 'Linux'
-    let known_os = s:linux
-    if system('uname.exe') =~ 'MSYS'
-      let g:wsl_host = 1
-    elseif $IS_TERMUX =~ 'true'
-      " Don't want to relay on config settings but it will do for now
-      " untested way: command -v termux-setup-storage &> /dev/null
-      " the termux-setup-storage should only exist on termux
-      let g:termux_host = 1
-    endif
-  else
-    exe "normal \<Esc>"
-    throw "unknown OS: " . os
-  endif
-  return known_os
-endfunction
-
 " **************  WINDOWS specific ********************
 func! s:Windows_conf_before () abort
   " Set pwsh or powershell
@@ -111,6 +125,8 @@ func! s:Windows_conf_before () abort
   " set shellcmdflag=-c
   set shell=cmd
   set shellcmdflag=/c
+
+  g:bash = system("where.exe bash | awk '/[Gg]it/ {print}' | tr -d '\r\n'")
 
   let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
   " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
@@ -296,7 +312,7 @@ func! s:SetFZF () abort
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, s:preview_options, <bang>0)
 
-  if g:host_os ==? s:windows || g:termux_host
+  if g:host_os ==? s:windows || g:is_termux
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
