@@ -244,7 +244,7 @@ func! GetCurrentBufferPath () abort
    return trim(expand('%:p:h'))
 endf
 
-func! GitFZF () abort
+func! GitPath () abort
   let gitpath = trim(system('cd '.shellescape(expand('%:p:h')).' && git rev-parse --show-toplevel'))
   " exe 'FZF ' . path
   " For debug
@@ -257,10 +257,13 @@ func! GitFZF () abort
 endf
 
 function! RipgrepFzf(query, fullscreen)
-  let command_fmt = 'rg' . s:rg_args . '-- %s || true'
+  let command_fmt = 'rg' . s:rg_args . '-- %s ' . GitPath() . ' || true'
   let initial_command = printf(command_fmt, shellescape(a:query))
   let reload_command = printf(command_fmt, '{q}')
   let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
+  " let prev = fzf#vim#with_preview(spec)
+  " let prev = {'options': ['--phony', '--query', 'da', '--bind', 'change:reload:rg --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob \"!.git" --glob \"!node_modules" -- {q} C:/Users/daniel/.usr_conf || true', '--preview', 'C:\\Program Files\\Git\\usr\\bin\\bash.exe C:\\Users\\daniel\\CACHE~1\\vimfiles\\repos\\github.com\\junegunn\\fzf.vim\\bin\\preview.sh {}', '--bind', 'ctrl-/:toggle-preview']}
+  " echo prev
   call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
 endfunction
 
@@ -284,7 +287,7 @@ func! s:SetFZF () abort
 
     command! -bang -nargs=* Rg
       \ call fzf#vim#grep(
-      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>), 1,
+      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
       \   fzf#vim#with_preview(), <bang>0)
 
     command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
@@ -297,7 +300,7 @@ func! s:SetFZF () abort
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), <bang>0 ? s:preview_options_bang_fzf : s:preview_options, <bang>0)
+      \ call fzf#vim#files(GitPath(), <bang>0 ? s:preview_options_bang_fzf : s:preview_options, <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -306,7 +309,7 @@ func! s:SetFZF () abort
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=π"
@@ -318,13 +321,13 @@ func! s:SetFZF () abort
       command! -bang -nargs=? -complete=dir FzfFiles
             \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
       command! -bang -nargs=? -complete=dir GitFZF
-            \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang_nvim : s:preview_options_nvim), <bang>0)
+            \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options), <bang>0)
 
     else
       command! -bang -nargs=? -complete=dir FzfFiles
         \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
       command! -bang -nargs=? -complete=dir GitFZF
-        \ call fzf#vim#files(GitFZF(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+        \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
 
       execute "set <M-p>=\ep"
     endif
