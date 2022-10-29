@@ -84,11 +84,9 @@
 
 [[custom_plugins]]
   repo = "junegunn/fzf"
-  merged = false
 
 [[custom_plugins]]
   repo = "junegunn/fzf.vim"
-  merged = false
 
 [[custom_plugins]]
   repo = "mg979/vim-visual-multi"
