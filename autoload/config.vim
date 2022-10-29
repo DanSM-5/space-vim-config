@@ -458,12 +458,13 @@ endf
 func! s:MoveLinesBlockMapsWin () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
-    silent call s:RemapVisualMultiUpDown()
 
     Repeatable nnoremap mlu :<C-U>m-2<CR>==
     Repeatable nnoremap mld :<C-U>m+<CR>==
   else
     silent call s:RemapAltUpDownJK()
+    silent call s:RemapVisualMultiUpDown()
+
     if ! g:host_os ==? s:windows
       Repeatable nnoremap mlu :<C-U>m-2<CR>==
       Repeatable nnoremap mld :<C-U>m+<CR>==
