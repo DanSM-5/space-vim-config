@@ -6,7 +6,6 @@ let s:termux = 'termux'
 let s:wsl = 'wsl'
 " if shell is powershell.exe, system calls will be utf16 files with BOM
 let s:cleanrgx = '[\xFF\xFE\x01\r\n]'
-let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
 let g:bash = '/usr/bin/bash'
 let g:is_linux = 0
@@ -18,52 +17,22 @@ let g:is_termux = 0
 
 let g:host_os = 'unknown'
 
-function! s:CurrentOS ()
-  let os = substitute(system('uname'), '\n', '', '')
-  let known_os = 'unknown'
-  if has("gui_mac") || os ==? 'Darwin'
-    let g:is_mac = 1
-    let known_os = s:mac
-  elseif has('win32') || has("gui_win32")
-    let g:is_windows = 1
-    let known_os = s:windows
-  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS'
-    let g:is_windows = 1
-    let g:is_gitbash = 1
-    let known_os = s:windows
-  elseif os ==? 'Linux'
-    let known_os = s:linux
-    if system('cat /proc/version') =~ 'microsoft'
-      let g:is_wsl = 1
-    elseif $IS_TERMUX =~ 'true'
-      " Don't want to relay on config settings but it will do for now
-      " untested way: command -v termux-setup-storage &> /dev/null
-      " the termux-setup-storage should only exist on termux
-      let g:is_termux = 1
-    endif
-  else
-    exe "normal \<Esc>"
-    throw "unknown OS: " . os
-  endif
-  return known_os
-endfunction
+" General options
+let s:bind_opts = ['--bind', 'ctrl-/:toggle-preview,alt-up:preview-page-up,alt-down:preview-page-down']
+let s:preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
 
-" Ensure command
-let g:host_os = s:CurrentOS() 
+" let g:fzf_preview_window = ['right:60%', 'ctrl-/']
+" let s:preview_options_nvim = { 'window': { 'width': 0.9, 'height': 0.6 } }
+" let s:preview_options_bang_nvim = { 'window': { 'up': '60%' } }
 
-func! config#before () abort
-  " Can be used to set different undodir between vim and nvim
-  " silent call s:SetUndodir()
-  silent call s:Set_os_specific_before()
-  silent call s:SetBufferOptions()
-  silent call s:SetConfigurationsBefore()
-endf
+let s:preview_options = {'options': ['--preview-window=right,60%'] + s:preview_opts }
+let s:preview_options_nvim = { 'options': s:bind_opts }
+let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:bind_opts }
+let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] + s:bind_opts }
+let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%'] + s:preview_opts }
+let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] + s:bind_opts }
 
-func! config#after () abort
-  silent call s:Set_user_bindings()
-  silent call s:Set_os_specific_after()
-  silent call s:SetConfigurationsAfter()
-endf
+let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
 func! s:SetConfigurationsBefore () abort
   silent call s:SetRG()
@@ -126,7 +95,11 @@ func! s:Windows_conf_before () abort
   set shell=cmd
   set shellcmdflag=/c
 
-  g:bash = system("where.exe bash | awk '/[Gg]it/ {print}' | tr -d '\r\n'")
+  if g:is_gitbash
+    let g:bash = system("where.exe bash | awk.exe '/[Gg]it/ {print}' | tr -d '\r\n'")
+  else
+    let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
+  endif
 
   let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
   " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
@@ -198,7 +171,7 @@ func! s:Mac_conf_after () abort
 endf
 
 func! s:CallCleanCommand (comm) abort
-  return substitute(system(a:comm), s:cleanrgx, '', '')
+  return substitute(system(a:comm), '\', 'g', '\\')
 endf
 
 func! s:CleanCR () abort
@@ -272,47 +245,62 @@ func! GitPath () abort
   endif
 endf
 
+function! s:FzfRgWindows_preview(spec, fullscreen) abort
+
+  if g:is_gitbash
+    let bash_path = substitute(g:bash, '\\', '/', 'g')
+    let command_preview = bash_path . ' -c \"~/.SpaceVim.d/utils/preview.sh \$(printf \"%q\" {} | awk -F : ''{print \$1\":\"\$2\":\"\$3}'')"'
+  else
+    let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
+    let preview_path = substitute('/c' . $HOMEPATH . '\.SpaceVim.d\utils\preview.sh', '\\', '/', 'g')
+    let command_preview = bash_path . ' ' . preview_path . ' {}'
+  endif
+
+  " Keep for debugging
+  " echo command_preview
+
+  if has_key(a:spec, 'options')
+    let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:bind_opts
+  else
+    let a:spec.options = a:fullscreen ? s:preview_options_bang_fzf.options : s:preview_options.options
+  endif
+
+  return a:spec
+endfunction
+
 function! RipgrepFzf(query, fullscreen)
   let command_fmt = 'rg' . s:rg_args . '-- %s ' . GitPath() . ' || true'
   let initial_command = printf(command_fmt, shellescape(a:query))
   let reload_command = printf(command_fmt, '{q}')
   let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
-  " let prev = fzf#vim#with_preview(spec)
-  " let prev = {'options': ['--phony', '--query', 'da', '--bind', 'change:reload:rg --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob \"!.git" --glob \"!node_modules" -- {q} C:/Users/daniel/.usr_conf || true', '--preview', 'C:\\Program Files\\Git\\usr\\bin\\bash.exe C:\\Users\\daniel\\CACHE~1\\vimfiles\\repos\\github.com\\junegunn\\fzf.vim\\bin\\preview.sh {}', '--bind', 'ctrl-/:toggle-preview']}
-  " echo prev
-  call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
+  call fzf#vim#grep(initial_command, 1, g:is_windows ? s:FzfRgWindows_preview(spec, a:fullscreen) : fzf#vim#with_preview(spec), a:fullscreen)
+endfunction
+
+function! RipgrepFuzzy(query, fullscreen)
+  let command_fmt = 'rg' . s:rg_args . '-- %s ' . GitPath()
+  let initial_command = printf(command_fmt, shellescape(a:query))
+  let reload_command = printf(command_fmt, '{q}')
+  let spec = {'options': ['--query', a:query]}
+  call fzf#vim#grep(initial_command, 1, g:is_windows ? s:FzfRgWindows_preview(spec, a:fullscreen) : fzf#vim#with_preview(spec), a:fullscreen)
 endfunction
 
 func! s:SetFZF () abort
-  " General options
-  let bind_opts = ['--bind', 'ctrl-/:toggle-preview,alt-up:preview-page-up,alt-down:preview-page-down']
-  let preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + bind_opts
 
-  " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
-  " let s:preview_options_nvim = { 'window': { 'width': 0.9, 'height': 0.6 } }
-  " let s:preview_options_bang_nvim = { 'window': { 'up': '60%' } }
+  " command! -bang -nargs=* Rg
+  "   \ call fzf#vim#grep(
+  "   \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
+  "   \   g:is_windows ? s:FzfRgWindows_preview({}, <bang>0) : fzf#vim#with_preview(), <bang>0)
 
-  let s:preview_options = {'options': ['--preview-window=right,60%'] + preview_opts }
-  let s:preview_options_nvim = { 'options': bind_opts }
-  let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] + bind_opts }
-  let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] + bind_opts }
-  let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%'] + preview_opts }
-  let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] + bind_opts }
-
-  if executable('rg')
-
-    command! -bang -nargs=* Rg
-      \ call fzf#vim#grep(
-      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
-      \   fzf#vim#with_preview(), <bang>0)
-
-    command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
-  endif
+  command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
 
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, s:preview_options, <bang>0)
 
   if g:host_os ==? s:windows || g:is_termux
+
+    command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
+    command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
+
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
@@ -321,11 +309,18 @@ func! s:SetFZF () abort
     if ! has('nvim')
       execute "set <M-p>=\ep"
     endif
+
   elseif g:host_os ==? s:mac
+
     command! -bang -nargs=? -complete=dir FzfFiles
       \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
       \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+
+    command! -bang -nargs=* Rg
+      \ call fzf#vim#grep(
+      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
+      \   fzf#vim#with_preview(), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=π"
@@ -333,6 +328,12 @@ func! s:SetFZF () abort
 
   else
     " Linux
+
+    command! -bang -nargs=* Rg
+      \ call fzf#vim#grep(
+      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
+      \   fzf#vim#with_preview(), <bang>0)
+
     if has('nvim')
       command! -bang -nargs=? -complete=dir FzfFiles
             \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
@@ -464,3 +465,49 @@ func s:SetUndodir () abort
   endif
 endf
 
+function! s:CurrentOS ()
+  let os = substitute(system('uname'), '\n', '', '')
+  let known_os = 'unknown'
+  if has("gui_mac") || os ==? 'Darwin'
+    let g:is_mac = 1
+    let known_os = s:mac
+  elseif has('win32') || has("gui_win32")
+    let g:is_windows = 1
+    let known_os = s:windows
+  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS'
+    let g:is_windows = 1
+    let g:is_gitbash = 1
+    let known_os = s:windows
+  elseif os ==? 'Linux'
+    let known_os = s:linux
+    if system('cat /proc/version') =~ 'microsoft'
+      let g:is_wsl = 1
+    elseif $IS_TERMUX =~ 'true'
+      " Don't want to relay on config settings but it will do for now
+      " untested way: command -v termux-setup-storage &> /dev/null
+      " the termux-setup-storage should only exist on termux
+      let g:is_termux = 1
+    endif
+  else
+    exe "normal \<Esc>"
+    throw "unknown OS: " . os
+  endif
+  return known_os
+endfunction
+
+" Ensure command
+let g:host_os = s:CurrentOS() 
+
+func! config#before () abort
+  " Can be used to set different undodir between vim and nvim
+  " silent call s:SetUndodir()
+  silent call s:Set_os_specific_before()
+  silent call s:SetBufferOptions()
+  silent call s:SetConfigurationsBefore()
+endf
+
+func! config#after () abort
+  silent call s:Set_user_bindings()
+  silent call s:Set_os_specific_after()
+  silent call s:SetConfigurationsAfter()
+endf
