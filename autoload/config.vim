@@ -298,7 +298,7 @@ func! s:SetFZF () abort
 
   if g:host_os ==? s:windows || g:is_termux
 
-    command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
+    " command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
     command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
@@ -391,10 +391,16 @@ func! s:RemapAltUpDownNormal () abort
   xnoremap <A-Down> :m'>+<CR>gv=gv
 
   " move current line up one line
-  nnoremap <A-Up> :<C-u>m-2<CR>==
+  noremap <A-Up> :<C-u>m-2<CR>==
 
   " move current line down one line
   nnoremap <A-Down> :<C-u>m+<CR>==
+
+  " move current line up in insert mode
+  inoremap <A-Up> <Esc>:m .-2<CR>==gi
+
+  " move current line down in insert mode
+  inoremap <A-Down> <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapAltUpDownSpecial () abort
@@ -409,25 +415,51 @@ func! s:RemapAltUpDownSpecial () abort
 
   " move current line down one line
   nnoremap <Esc>[1;3B :<C-u>m+<CR>==
+
+  " move current line up in insert mode
+  inoremap <Esc>[1;3A <Esc>:m .-2<CR>==gi
+
+  " move current line down in insert mode
+  inoremap <Esc>[1;3B <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapAltUpDownJK () abort
-    " move selected lines up one line
-    xnoremap <C-K> :m-2<CR>gv=gv
+  " move selected lines up one line
+  xnoremap <C-K> :m-2<CR>gv=gv
 
-    " move selected lines down one line
-    xnoremap <C-J> :m'>+<CR>gv=gv
+  " move selected lines down one line
+  xnoremap <C-J> :m'>+<CR>gv=gv
 
-    " move current line up one line
-    nnoremap <C-K> :<C-u>m-2<CR>==
+  " move current line up one line
+  nnoremap <C-K> :<C-u>m-2<CR>==
 
-    " move current line down one line
-    nnoremap <C-J> :<C-u>m+<CR>==
+  " move current line down one line
+  nnoremap <C-J> :<C-u>m+<CR>==
+
+  " move current line up in insert mode
+  inoremap <C-K> <Esc>:m .-2<CR>==gi
+
+  " move current line down in insert mode
+  inoremap <C-J> <Esc>:m .+1<CR>==gi
+endf
+
+func! s:RemapVisualMultiUpDown () abort
+  " Map usual <C-Up> <C-Down> to <C-y> and <C-h> for use in vim windows
+  nmap <C-y> <Plug>(VM-Select-Cursor-Up)
+  nmap <C-h> <Plug>(VM-Select-Cursor-Down)
+
+  " Other ways to remap
+  " let g:VM_custom_remaps = { '<C-h>': 'Up', '<C-H>': 'Down' }
+  " let g:VM_maps = { 'Select Cursor Down': '<C-h>', 'Select Cursor Up': '<C-y>' }
+  " let g:VM_maps["Select Cursor Down"] = '<C-h>'
+  " let g:VM_maps["Select Cursor Up"]   = '<C-H>'
 endf
 
 func! s:MoveLinesBlockMapsWin () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
+    silent call s:RemapVisualMultiUpDown()
+
     Repeatable nnoremap mlu :<C-U>m-2<CR>==
     Repeatable nnoremap mld :<C-U>m+<CR>==
   else
