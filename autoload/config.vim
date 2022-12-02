@@ -109,6 +109,11 @@ func! s:Windows_conf_after () abort
   " Set paste command with pwsh core
   let g:system_copy#paste_command = 'pbpaste.exe'
   let g:system_copy#copy_command = 'pbcopy.exe'
+
+  if executable('tldr')
+    set keywordprg=tldr
+  endif
+
   if has("gui_win32")
     silent call s:MoveLinesBlockMapsGvim()
   else
