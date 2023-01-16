@@ -513,7 +513,7 @@ function! s:CurrentOS ()
     let known_os = s:windows
   elseif os ==? 'Linux'
     let known_os = s:linux
-    if system('cat /proc/version') =~ 'microsoft'
+    if system('cat /proc/version') =~ '[Mm]icrosoft'
       let g:is_wsl = 1
     elseif $IS_TERMUX =~ 'true'
       " Don't want to relay on config settings but it will do for now
