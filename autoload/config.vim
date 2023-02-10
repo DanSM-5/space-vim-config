@@ -18,7 +18,7 @@ let g:is_termux = 0
 let g:host_os = 'unknown'
 
 " General options
-let s:bind_opts = ['--bind', 'ctrl-/:toggle-preview,alt-up:preview-page-up,alt-down:preview-page-down']
+let s:bind_opts = ['--bind', 'ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
 let s:preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
 
 " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
