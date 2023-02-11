@@ -18,19 +18,62 @@ let g:is_termux = 0
 let g:host_os = 'unknown'
 
 " General options
-let s:bind_opts = ['--bind', 'ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
+let s:bind_opts = ['--bind', 'ctrl-p:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
 let s:preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
 
-" let g:fzf_preview_window = ['right:60%', 'ctrl-/']
-" let s:preview_options_nvim = { 'window': { 'width': 0.9, 'height': 0.6 } }
-" let s:preview_options_bang_nvim = { 'window': { 'up': '60%' } }
+let s:fzf_original_preview_options = $FZF_DEFAULT_OPTS
 
-let s:preview_options = {'options': ['--preview-window=right,60%'] + s:preview_opts }
-let s:preview_options_nvim = { 'options': s:bind_opts }
-let s:preview_options_fzfvim = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:bind_opts }
-let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] + s:bind_opts }
-let s:preview_options_bang_fzf = { 'options': ['--preview-window=up,60%'] + s:preview_opts }
-let s:preview_options_bang_nvim = { 'options': ['--preview-window=up'] + s:bind_opts }
+" Test options for formationg window
+" let g:fzf_preview_window = ['right:60%', 'ctrl-/']
+" let s:preview_options_bind = { 'window': { 'width': 0.9, 'height': 0.6 } }
+" let s:preview_options_bang_bind = { 'window': { 'up': '60%' } }
+
+" Uncomment for debug
+" echo 'FZF default opts: ' . $FZF_DEFAULT_OPTS
+
+" INFO: Original values before nvim 0.8.0+
+" let s:preview_options = {'options': s:preview_opts }
+" let s:preview_options_bind = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:bind_opts }
+" let s:preview_options_bang_bind = { 'options': ['--preview-window=up,60%'] + s:bind_opts }
+" let s:preview_options_bang = { 'options': ['--preview-window=up,60%'] + s:preview_opts }
+
+" WARNING: Error on nvim from 0.8.0+ with fzf and space vim
+" 
+" Issue is related to set status line which fails if fzf args
+" contain a '%' (e.g. '--preview-window=right,60%' or '--height=80%')
+"
+" The issue shows a the message 'Illegal character <'>'
+" It fails first on SpaceVim#layers#core#statusline#get 
+" in shell.vim (see snippet below)
+"
+" function! s:on_term_open() abort
+"   startinsert
+"   let &l:statusline = SpaceVim#layers#core#statusline#get(1)
+" endfunction
+"
+" If omitted, the error will occur in two places in fzf.vim (s:execute_term)
+"
+" First on 'call termopen(command, fzf)'
+" Second on 'setf fzf'
+"
+" The parsing of '%' is somehow escaping one single quote (') breaking
+" the string.
+"
+" The error is not present on windows (powershel, pwsh, gitbash)
+" Error is reproducible in termux, linux, steamdeck, wsl and mac
+" if both SapceVim and Fzf are used in neovim 0.8.0+
+" It won't happen with an empty config
+"
+" Current workaound is to modify FZF_DEFAULT_OPTS when executing the commands
+" as those will be applied by fzf itself and are not parsed by neovim
+
+" Options with only bind commands
+let s:preview_options_bind = { 'options': s:bind_opts }
+let s:preview_options_bang_bind = { 'options': s:bind_opts }
+
+" Options with bindings + preview
+let s:preview_options = {'options': s:preview_opts }
+let s:preview_options_bang = { 'options': s:preview_opts }
 
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 
@@ -250,6 +293,26 @@ func! GitPath () abort
   endif
 endf
 
+func! s:GetFzfOptionsPreview (fullscreen) abort
+  if a:fullscreen
+    let $FZF_DEFAULT_OPTS = s:fzf_original_preview_options . " --preview-window=up,60%"
+    return s:preview_options_bang
+  else
+    let $FZF_DEFAULT_OPTS = s:fzf_original_preview_options . " --preview-window=right,60%"
+    return s:preview_options
+  endif
+endf
+
+func! s:GetFzfOptionsBind (fullscreen) abort
+  if a:fullscreen
+    let $FZF_DEFAULT_OPTS = s:fzf_original_preview_options . " --preview-window=up,60%"
+    return s:preview_options_bang_bind
+  else
+    let $FZF_DEFAULT_OPTS = s:fzf_original_preview_options . " --preview-window=right,60%"
+    return s:preview_options_bind
+  endif
+endf
+
 function! s:FzfRgWindows_preview(spec, fullscreen) abort
 
   if g:is_gitbash
@@ -267,7 +330,8 @@ function! s:FzfRgWindows_preview(spec, fullscreen) abort
   if has_key(a:spec, 'options')
     let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:bind_opts
   else
-    let a:spec.options = a:fullscreen ? s:preview_options_bang_fzf.options : s:preview_options.options
+    let preview_options = s:GetFzfOptionsPreview(a:fullscreen)
+    let a:spec.options = preview_options.options
   endif
 
   return a:spec
@@ -301,26 +365,39 @@ func! s:SetFZF () abort
   command! -bang -nargs=? -complete=dir Files
     \ call fzf#vim#files(<q-args>, s:preview_options, <bang>0)
 
-  if g:host_os ==? s:windows || g:is_termux
+  if g:is_windows
 
     " command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
     command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
+      \ call fzf#vim#files(<q-args>, s:GetFzfOptionsPreview(<bang>0), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), <bang>0 ? s:preview_options_bang_fzf : s:preview_options, <bang>0)
+      \ call fzf#vim#files(GitPath(), s:GetFzfOptionsPreview(<bang>0), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
     endif
 
-  elseif g:host_os ==? s:mac
+  elseif g:is_termux
+
+    command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+      \ call fzf#vim#files(<q-args>, s:GetFzfOptionsPreview(<bang>0), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
+      \ call fzf#vim#files(GitPath(), s:GetFzfOptionsPreview(<bang>0), <bang>0)
+
+    if ! has('nvim')
+      execute "set <M-p>=\ep"
+    endif
+
+  elseif g:is_mac
+
+    command! -bang -nargs=? -complete=dir FzfFiles
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:GetFzfOptionsBind(<bang>0)), <bang>0)
+    command! -bang -nargs=? -complete=dir GitFZF
+      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:GetFzfOptionsBind(<bang>0)), <bang>0)
 
     command! -bang -nargs=* Rg
       \ call fzf#vim#grep(
@@ -333,26 +410,25 @@ func! s:SetFZF () abort
 
   else
     " Linux
+    command! -bang -nargs=? -complete=dir FzfFiles
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:GetFzfOptionsBind(<bang>0)), <bang>0)
+    command! -bang -nargs=? -complete=dir GitFZF
+      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:GetFzfOptionsBind(<bang>0)), <bang>0)
 
     command! -bang -nargs=* Rg
       \ call fzf#vim#grep(
       \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
       \   fzf#vim#with_preview(), <bang>0)
 
-    if has('nvim')
-      command! -bang -nargs=? -complete=dir FzfFiles
-            \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang : s:preview_options, <bang>0)
-      command! -bang -nargs=? -complete=dir GitFZF
-            \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options), <bang>0)
-
-    else
-      command! -bang -nargs=? -complete=dir FzfFiles
-        \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
-      command! -bang -nargs=? -complete=dir GitFZF
-        \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang : s:preview_options_fzfvim), <bang>0)
-
+    if ! has('nvim')
       execute "set <M-p>=\ep"
     endif
+
+    " else
+    " command! -bang -nargs=? -complete=dir FzfFiles
+    "       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bang_bind : s:preview_options, <bang>0)
+    " command! -bang -nargs=? -complete=dir GitFZF
+    "       \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bang_bind : s:preview_options), <bang>0)
 
   endif
 
