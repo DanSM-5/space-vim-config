@@ -277,7 +277,13 @@ func! s:SetCtrlSFM () abort
 endf
 
 func! GetCurrentBufferPath () abort
-   return trim(expand('%:p:h'))
+  " NOTE: Git Bash and Git Zsh
+  " fzf#vim#grep command will fail if '\' is not escaped
+  " fzf#vim#files command will fail if '\' is escaped
+  " Both functions work if '\' is replaced by '/'
+  return substitute(trim(expand('%:p:h')), '\', '/', 'g')
+  " return trim(expand('%:p:h'))
+  " return trim(shellescape(expand('%:p:h')))
 endf
 
 func! GitPath () abort
