@@ -137,8 +137,9 @@ func! s:Windows_conf_before () abort
   set shell=cmd
   set shellcmdflag=/c
 
-  if g:is_gitbash
-    let g:bash = system("where.exe bash | awk.exe '/[Gg]it/ {print}' | tr -d '\r\n'")
+  if has("gui_running") || ! has('nvim')
+    " Vim and Gvim requires additional escaping on \r\n
+    let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\\r\\n\" "), '\n', '', '')
   else
     let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
   endif
@@ -331,14 +332,9 @@ endf
 
 function! s:FzfRgWindows_preview(spec, fullscreen) abort
 
-  if g:is_gitbash
-    let bash_path = substitute(g:bash, '\\', '/', 'g')
-    let command_preview = bash_path . ' -c \"~/.SpaceVim.d/utils/preview.sh \$(printf \"%q\" {} | awk -F : ''{print \$1\":\"\$2\":\"\$3}'')"'
-  else
-    let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
-    let preview_path = substitute('/c' . $HOMEPATH . '\.SpaceVim.d\utils\preview.sh', '\\', '/', 'g')
-    let command_preview = bash_path . ' ' . preview_path . ' {}'
-  endif
+  let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
+  let preview_path = substitute('/c' . $HOMEPATH . '\.SpaceVim.d\utils\preview.sh', '\\', '/', 'g')
+  let command_preview = bash_path . ' ' . preview_path . ' {}'
 
   " Keep for debugging
   " echo command_preview
@@ -363,11 +359,13 @@ function! RipgrepFzf(query, fullscreen)
   let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
 
   if g:is_windows
-    call fzf#vim#grep(initial_command, 1, s:FzfRgWindows_preview(spec, a:fullscreen), a:fullscreen)
+    let command_with_preview = s:FzfRgWindows_preview(spec, a:fullscreen)
   else
     let spec.options = s:FzfRg_bindings(spec.options)
-    call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen)), a:fullscreen)
+    let command_with_preview = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
   endif
+
+  call fzf#vim#grep(initial_command, 1, command_with_preview, a:fullscreen)
 endfunction
 
 function! RipgrepFuzzy(query, fullscreen)
@@ -610,18 +608,22 @@ func s:SetUndodir () abort
   endif
 endf
 
-function! s:CurrentOS ()
+function! g:CurrentOS ()
   let os = substitute(system('uname'), '\n', '', '')
   let known_os = 'unknown'
+  " Remove annoying error log for MSYS bash and zsh on start (uname not
+  " available)
+  echo ''
   if has("gui_mac") || os ==? 'Darwin'
     let g:is_mac = 1
     let known_os = s:mac
-  elseif has('win32') || has("gui_win32")
-    let g:is_windows = 1
-    let known_os = s:windows
-  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS'
+  " Gitbash and Msys zsh does not report ming on first run
+  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS' || $IS_GITBASH == 'true'
     let g:is_windows = 1
     let g:is_gitbash = 1
+    let known_os = s:windows
+  elseif has('win32') || has("gui_win32")
+    let g:is_windows = 1
     let known_os = s:windows
   elseif os ==? 'Linux'
     let known_os = s:linux
@@ -641,7 +643,7 @@ function! s:CurrentOS ()
 endfunction
 
 " Ensure command
-let g:host_os = s:CurrentOS() 
+let g:host_os = g:CurrentOS() 
 
 func! config#before () abort
   " Can be used to set different undodir between vim and nvim
