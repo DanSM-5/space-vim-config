@@ -174,7 +174,10 @@ endf
 
 " **************  WSL specific ********************
 func! s:WSL_conf_before () abort
-  let g:python3_host_prog = 'python3'
+  if has('nvim')
+    let g:python3_host_prog = 'python3'
+  endif
+
   let g:rooter_change_directory_for_non_project_files = 'current'
   let g:rooter_patterns = ["!.SpaceVim.d/", ".git/", "/home/".$USER."/.SpaceVim.d"]
 
