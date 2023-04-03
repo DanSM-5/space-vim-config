@@ -162,6 +162,14 @@ func! s:Windows_conf_after () abort
   else
     silent call s:MoveLinesBlockMapsWin()
   endif
+
+  " Windows version of neovim won't set back the cursor shape
+  if has('nvim')
+    augroup RestoreCursorShapeOnExit
+      autocmd!
+      autocmd VimLeave * set guicursor=a:ver100
+    augroup END
+  endif
 endf
 
 " **************  WSL specific ********************
