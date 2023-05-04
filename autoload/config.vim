@@ -77,6 +77,7 @@ let s:preview_options_preview = {'options': s:preview_opts }
 " as those will be applied by fzf itself and are not parsed by neovim
 
 func! s:SetConfigurationsBefore () abort
+  silent call s:SetCamelCaseMotion()
   silent call s:SetRG()
   silent call s:SetCtrlSFM()
   silent call s:DefineCommands()
@@ -87,6 +88,9 @@ func! s:SetConfigurationsAfter () abort
 endf
 
 func! s:SetBufferOptions () abort
+  " Allow wrapping logn lines
+  set wrap
+
   augroup userconfiles
     au!
     au BufNewFile,BufRead *.uconfrc,*.uconfgrc,*.ualiasrc,*.ualiasgrc setfiletype sh
@@ -235,6 +239,10 @@ endf
 
 func! s:CleanCR () abort
   %s/\r//g
+endf
+
+func! s:SetCamelCaseMotion () abort
+  let g:camelcasemotion_key = '<leader>'
 endf
 
 func! s:SetRG () abort
@@ -479,12 +487,7 @@ func! s:SetFZF () abort
 endf
 
 func! s:SetVimSystemCopyMaps () abort 
-  nmap zy <Plug>SystemCopy
-  xmap zy <Plug>SystemCopy
-  nmap zY <Plug>SystemCopyLine
-  nmap zp <Plug>SystemPaste
-  xmap zp <Plug>SystemPaste
-  nmap zP <Plug>SystemPasteLine
+  source ~/.SpaceVim.d/utils/system-copy-maps.vim
 endf
 
 func! s:SetCtrlSFMaps () abort
@@ -506,62 +509,62 @@ endf
 
 func! s:RemapAltUpDownNormal () abort
   " move selected lines up one line
-  xnoremap <A-Up> :m-2<CR>gv=gv
+  xnoremap <silent><A-Up> :m-2<CR>gv=gv
 
   " move selected lines down one line
-  xnoremap <A-Down> :m'>+<CR>gv=gv
+  xnoremap <silent><A-Down> :m'>+<CR>gv=gv
 
   " move current line up one line
-  noremap <A-Up> :<C-u>m-2<CR>==
+  noremap <silent><A-Up> :<C-u>m-2<CR>==
 
   " move current line down one line
-  nnoremap <A-Down> :<C-u>m+<CR>==
+  nnoremap <silent><A-Down> :<C-u>m+<CR>==
 
   " move current line up in insert mode
-  inoremap <A-Up> <Esc>:m .-2<CR>==gi
+  inoremap <silent><A-Up> <Esc>:m .-2<CR>==gi
 
   " move current line down in insert mode
-  inoremap <A-Down> <Esc>:m .+1<CR>==gi
+  inoremap <silent><A-Down> <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapAltUpDownSpecial () abort
   " move selected lines up one line
-  xnoremap <Esc>[1;3A :m-2<CR>gv=gv
+  xnoremap <silent><Esc>[1;3A :m-2<CR>gv=gv
 
   " move selected lines down one line
-  xnoremap <Esc>[1;3B :m'>+<CR>gv=gv
+  xnoremap <silent><Esc>[1;3B :m'>+<CR>gv=gv
 
   " move current line up one line
-  nnoremap <Esc>[1;3A :<C-u>m-2<CR>==
+  nnoremap <silent><Esc>[1;3A :<C-u>m-2<CR>==
 
   " move current line down one line
-  nnoremap <Esc>[1;3B :<C-u>m+<CR>==
+  nnoremap <silent><Esc>[1;3B :<C-u>m+<CR>==
 
   " move current line up in insert mode
-  inoremap <Esc>[1;3A <Esc>:m .-2<CR>==gi
+  inoremap <silent><Esc>[1;3A <Esc>:m .-2<CR>==gi
 
   " move current line down in insert mode
-  inoremap <Esc>[1;3B <Esc>:m .+1<CR>==gi
+  inoremap <silent><Esc>[1;3B <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapAltUpDownJK () abort
   " move selected lines up one line
-  xnoremap <C-K> :m-2<CR>gv=gv
+  xnoremap <silent><C-K> :m-2<CR>gv=gv
 
   " move selected lines down one line
-  xnoremap <C-J> :m'>+<CR>gv=gv
+  xnoremap <silent><C-J> :m'>+<CR>gv=gv
 
   " move current line up one line
-  nnoremap <C-K> :<C-u>m-2<CR>==
+  nnoremap <silent><C-K> :<C-u>m-2<CR>==
 
   " move current line down one line
-  nnoremap <C-J> :<C-u>m+<CR>==
+  nnoremap <silent><C-J> :<C-u>m+<CR>==
 
   " move current line up in insert mode
-  inoremap <C-K> <Esc>:m .-2<CR>==gi
+  inoremap <silent><C-K> <Esc>:m .-2<CR>==gi
 
   " move current line down in insert mode
-  inoremap <C-J> <Esc>:m .+1<CR>==gi
+  inoremap <silent><C-J> <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapVisualMultiUpDown () abort
@@ -580,31 +583,48 @@ func! s:MoveLinesBlockMapsWin () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
 
-    Repeatable nnoremap mlu :<C-U>m-2<CR>==
-    Repeatable nnoremap mld :<C-U>m+<CR>==
+    Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+    Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
   else
     silent call s:RemapAltUpDownJK()
     silent call s:RemapVisualMultiUpDown()
 
+    " TODO: Verify unreachable block below
     if ! g:host_os ==? s:windows
-      Repeatable nnoremap mlu :<C-U>m-2<CR>==
-      Repeatable nnoremap mld :<C-U>m+<CR>==
+      Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+      Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
     endif
   endif
 
 endf
 
 func! s:MoveLinesBlockMapsLinux () abort
+  " Allow motion mlu/d
+  Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
+
   " <A-UP> | <Esc>[1;3A
   " <A-Down> | <Esc>[1;3B
-  silent call s:RemapAltUpDownSpecial()
+  if has('nvim')
+    silent call s:RemapAltUpDownNormal()
+  else
+    silent call s:RemapAltpDownSpecial()
+  endif
 endf
 
 func! s:MoveLinesBlockMapsGvim () abort
+  " Allow motion mlu/d
+  Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
+
   silent call s:RemapAltUpDownNormal()
 endf
 
 func! s:MoveLinesBlockMapsMac () abort
+  " Allow motion mlu/d
+  Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
+
   " Not needed remap on regular vim
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
