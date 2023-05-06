@@ -197,6 +197,9 @@ func! s:WSL_conf_after () abort
   " Set copy and paste commands
   let g:system_copy#paste_command = 'pbpaste.exe'
   let g:system_copy#copy_command = 'pbcopy.exe'
+
+  call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+
   silent call s:MoveLinesBlockMapsLinux()
 endf
 
@@ -640,11 +643,17 @@ func s:SetUndodir () abort
 endf
 
 function! g:CurrentOS ()
+  if has('win32')
+    set shell=cmd
+    set shellcmdflag=/c
+  endif
+
   let os = substitute(system('uname'), '\n', '', '')
   let known_os = 'unknown'
+
   " Remove annoying error log for MSYS bash and zsh on start (uname not
   " available)
-  echo ''
+  " echo ''
   if has("gui_mac") || os ==? 'Darwin'
     let g:is_mac = 1
     let known_os = s:mac
@@ -658,7 +667,7 @@ function! g:CurrentOS ()
     let known_os = s:windows
   elseif os ==? 'Linux'
     let known_os = s:linux
-    if system('cat /proc/version') =~ '[Mm]icrosoft'
+    if has('wsl') || system('cat /proc/version') =~ '[Mm]icrosoft'
       let g:is_wsl = 1
     elseif $IS_TERMUX =~ 'true'
       " Don't want to relay on config settings but it will do for now
@@ -670,6 +679,7 @@ function! g:CurrentOS ()
     exe "normal \<Esc>"
     throw "unknown OS: " . os
   endif
+
   return known_os
 endfunction
 
