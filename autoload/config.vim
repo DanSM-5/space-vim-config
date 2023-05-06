@@ -88,9 +88,6 @@ func! s:SetConfigurationsAfter () abort
 endf
 
 func! s:SetBufferOptions () abort
-  " Allow wrapping logn lines
-  set wrap
-
   augroup userconfiles
     au!
     au BufNewFile,BufRead *.uconfrc,*.uconfgrc,*.ualiasrc,*.ualiasgrc setfiletype sh
