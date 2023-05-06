@@ -611,7 +611,7 @@ func! s:MoveLinesBlockMapsLinux () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
   else
-    silent call s:RemapAltpDownSpecial()
+    silent call s:RemapAltUpDownSpecial()
   endif
 endf
 
