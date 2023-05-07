@@ -77,6 +77,7 @@ let s:preview_options_preview = {'options': s:preview_opts }
 " as those will be applied by fzf itself and are not parsed by neovim
 
 func! s:SetConfigurationsBefore () abort
+  silent call s:SetCamelCaseMotion()
   silent call s:SetRG()
   silent call s:SetCtrlSFM()
   silent call s:DefineCommands()
@@ -137,8 +138,9 @@ func! s:Windows_conf_before () abort
   set shell=cmd
   set shellcmdflag=/c
 
-  if g:is_gitbash
-    let g:bash = system("where.exe bash | awk.exe '/[Gg]it/ {print}' | tr -d '\r\n'")
+  if has("gui_running") || ! has('nvim')
+    " Vim and Gvim requires additional escaping on \r\n
+    let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\\r\\n\" "), '\n', '', '')
   else
     let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
   endif
@@ -161,11 +163,22 @@ func! s:Windows_conf_after () abort
   else
     silent call s:MoveLinesBlockMapsWin()
   endif
+
+  " Windows version of neovim won't set back the cursor shape
+  if has('nvim')
+    augroup RestoreCursorShapeOnExit
+      autocmd!
+      autocmd VimLeave * set guicursor=a:ver100
+    augroup END
+  endif
 endf
 
 " **************  WSL specific ********************
 func! s:WSL_conf_before () abort
-  g:python3_host_prog = '/usr/bin/env python3'
+  if has('nvim')
+    let g:python3_host_prog = 'python3'
+  endif
+
   let g:rooter_change_directory_for_non_project_files = 'current'
   let g:rooter_patterns = ["!.SpaceVim.d/", ".git/", "/home/".$USER."/.SpaceVim.d"]
 
@@ -181,6 +194,9 @@ func! s:WSL_conf_after () abort
   " Set copy and paste commands
   let g:system_copy#paste_command = 'pbpaste.exe'
   let g:system_copy#copy_command = 'pbcopy.exe'
+
+  call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+
   silent call s:MoveLinesBlockMapsLinux()
 endf
 
@@ -223,6 +239,10 @@ endf
 
 func! s:CleanCR () abort
   %s/\r//g
+endf
+
+func! s:SetCamelCaseMotion () abort
+  let g:camelcasemotion_key = '<leader>'
 endf
 
 func! s:SetRG () abort
@@ -331,14 +351,9 @@ endf
 
 function! s:FzfRgWindows_preview(spec, fullscreen) abort
 
-  if g:is_gitbash
-    let bash_path = substitute(g:bash, '\\', '/', 'g')
-    let command_preview = bash_path . ' -c \"~/.SpaceVim.d/utils/preview.sh \$(printf \"%q\" {} | awk -F : ''{print \$1\":\"\$2\":\"\$3}'')"'
-  else
-    let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
-    let preview_path = substitute('/c' . $HOMEPATH . '\.SpaceVim.d\utils\preview.sh', '\\', '/', 'g')
-    let command_preview = bash_path . ' ' . preview_path . ' {}'
-  endif
+  let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
+  let preview_path = substitute('/c' . $HOMEPATH . '\.SpaceVim.d\utils\preview.sh', '\\', '/', 'g')
+  let command_preview = bash_path . ' ' . preview_path . ' {}'
 
   " Keep for debugging
   " echo command_preview
@@ -363,11 +378,13 @@ function! RipgrepFzf(query, fullscreen)
   let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
 
   if g:is_windows
-    call fzf#vim#grep(initial_command, 1, s:FzfRgWindows_preview(spec, a:fullscreen), a:fullscreen)
+    let command_with_preview = s:FzfRgWindows_preview(spec, a:fullscreen)
   else
     let spec.options = s:FzfRg_bindings(spec.options)
-    call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen)), a:fullscreen)
+    let command_with_preview = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
   endif
+
+  call fzf#vim#grep(initial_command, 1, command_with_preview, a:fullscreen)
 endfunction
 
 function! RipgrepFuzzy(query, fullscreen)
@@ -470,12 +487,7 @@ func! s:SetFZF () abort
 endf
 
 func! s:SetVimSystemCopyMaps () abort 
-  nmap zy <Plug>SystemCopy
-  xmap zy <Plug>SystemCopy
-  nmap zY <Plug>SystemCopyLine
-  nmap zp <Plug>SystemPaste
-  xmap zp <Plug>SystemPaste
-  nmap zP <Plug>SystemPasteLine
+  source ~/.SpaceVim.d/utils/system-copy-maps.vim
 endf
 
 func! s:SetCtrlSFMaps () abort
@@ -497,62 +509,62 @@ endf
 
 func! s:RemapAltUpDownNormal () abort
   " move selected lines up one line
-  xnoremap <A-Up> :m-2<CR>gv=gv
+  xnoremap <silent><A-Up> :m-2<CR>gv=gv
 
   " move selected lines down one line
-  xnoremap <A-Down> :m'>+<CR>gv=gv
+  xnoremap <silent><A-Down> :m'>+<CR>gv=gv
 
   " move current line up one line
-  noremap <A-Up> :<C-u>m-2<CR>==
+  noremap <silent><A-Up> :<C-u>m-2<CR>==
 
   " move current line down one line
-  nnoremap <A-Down> :<C-u>m+<CR>==
+  nnoremap <silent><A-Down> :<C-u>m+<CR>==
 
   " move current line up in insert mode
-  inoremap <A-Up> <Esc>:m .-2<CR>==gi
+  inoremap <silent><A-Up> <Esc>:m .-2<CR>==gi
 
   " move current line down in insert mode
-  inoremap <A-Down> <Esc>:m .+1<CR>==gi
+  inoremap <silent><A-Down> <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapAltUpDownSpecial () abort
   " move selected lines up one line
-  xnoremap <Esc>[1;3A :m-2<CR>gv=gv
+  xnoremap <silent><Esc>[1;3A :m-2<CR>gv=gv
 
   " move selected lines down one line
-  xnoremap <Esc>[1;3B :m'>+<CR>gv=gv
+  xnoremap <silent><Esc>[1;3B :m'>+<CR>gv=gv
 
   " move current line up one line
-  nnoremap <Esc>[1;3A :<C-u>m-2<CR>==
+  nnoremap <silent><Esc>[1;3A :<C-u>m-2<CR>==
 
   " move current line down one line
-  nnoremap <Esc>[1;3B :<C-u>m+<CR>==
+  nnoremap <silent><Esc>[1;3B :<C-u>m+<CR>==
 
   " move current line up in insert mode
-  inoremap <Esc>[1;3A <Esc>:m .-2<CR>==gi
+  inoremap <silent><Esc>[1;3A <Esc>:m .-2<CR>==gi
 
   " move current line down in insert mode
-  inoremap <Esc>[1;3B <Esc>:m .+1<CR>==gi
+  inoremap <silent><Esc>[1;3B <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapAltUpDownJK () abort
   " move selected lines up one line
-  xnoremap <C-K> :m-2<CR>gv=gv
+  xnoremap <silent><C-K> :m-2<CR>gv=gv
 
   " move selected lines down one line
-  xnoremap <C-J> :m'>+<CR>gv=gv
+  xnoremap <silent><C-J> :m'>+<CR>gv=gv
 
   " move current line up one line
-  nnoremap <C-K> :<C-u>m-2<CR>==
+  nnoremap <silent><C-K> :<C-u>m-2<CR>==
 
   " move current line down one line
-  nnoremap <C-J> :<C-u>m+<CR>==
+  nnoremap <silent><C-J> :<C-u>m+<CR>==
 
   " move current line up in insert mode
-  inoremap <C-K> <Esc>:m .-2<CR>==gi
+  inoremap <silent><C-K> <Esc>:m .-2<CR>==gi
 
   " move current line down in insert mode
-  inoremap <C-J> <Esc>:m .+1<CR>==gi
+  inoremap <silent><C-J> <Esc>:m .+1<CR>==gi
 endf
 
 func! s:RemapVisualMultiUpDown () abort
@@ -571,31 +583,48 @@ func! s:MoveLinesBlockMapsWin () abort
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
 
-    Repeatable nnoremap mlu :<C-U>m-2<CR>==
-    Repeatable nnoremap mld :<C-U>m+<CR>==
+    Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+    Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
   else
     silent call s:RemapAltUpDownJK()
     silent call s:RemapVisualMultiUpDown()
 
+    " TODO: Verify unreachable block below
     if ! g:host_os ==? s:windows
-      Repeatable nnoremap mlu :<C-U>m-2<CR>==
-      Repeatable nnoremap mld :<C-U>m+<CR>==
+      Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+      Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
     endif
   endif
 
 endf
 
 func! s:MoveLinesBlockMapsLinux () abort
+  " Allow motion mlu/d
+  Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
+
   " <A-UP> | <Esc>[1;3A
   " <A-Down> | <Esc>[1;3B
-  silent call s:RemapAltUpDownSpecial()
+  if has('nvim')
+    silent call s:RemapAltUpDownNormal()
+  else
+    silent call s:RemapAltUpDownSpecial()
+  endif
 endf
 
 func! s:MoveLinesBlockMapsGvim () abort
+  " Allow motion mlu/d
+  Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
+
   silent call s:RemapAltUpDownNormal()
 endf
 
 func! s:MoveLinesBlockMapsMac () abort
+  " Allow motion mlu/d
+  Repeatable nnoremap <silent>mlu :<C-U>m-2<CR>==
+  Repeatable nnoremap <silent>mld :<C-U>m+<CR>==
+
   " Not needed remap on regular vim
   if has('nvim')
     silent call s:RemapAltUpDownNormal()
@@ -610,22 +639,32 @@ func s:SetUndodir () abort
   endif
 endf
 
-function! s:CurrentOS ()
+function! g:CurrentOS ()
+  if has('win32')
+    set shell=cmd
+    set shellcmdflag=/c
+  endif
+
   let os = substitute(system('uname'), '\n', '', '')
   let known_os = 'unknown'
+
+  " Remove annoying error log for MSYS bash and zsh on start (uname not
+  " available)
+  " echo ''
   if has("gui_mac") || os ==? 'Darwin'
     let g:is_mac = 1
     let known_os = s:mac
-  elseif has('win32') || has("gui_win32")
-    let g:is_windows = 1
-    let known_os = s:windows
-  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS'
+  " Gitbash and Msys zsh does not report ming on first run
+  elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS' || $IS_GITBASH == 'true'
     let g:is_windows = 1
     let g:is_gitbash = 1
     let known_os = s:windows
+  elseif has('win32') || has("gui_win32")
+    let g:is_windows = 1
+    let known_os = s:windows
   elseif os ==? 'Linux'
     let known_os = s:linux
-    if system('cat /proc/version') =~ '[Mm]icrosoft'
+    if has('wsl') || system('cat /proc/version') =~ '[Mm]icrosoft'
       let g:is_wsl = 1
     elseif $IS_TERMUX =~ 'true'
       " Don't want to relay on config settings but it will do for now
@@ -637,11 +676,12 @@ function! s:CurrentOS ()
     exe "normal \<Esc>"
     throw "unknown OS: " . os
   endif
+
   return known_os
 endfunction
 
 " Ensure command
-let g:host_os = s:CurrentOS() 
+let g:host_os = g:CurrentOS() 
 
 func! config#before () abort
   " Can be used to set different undodir between vim and nvim
