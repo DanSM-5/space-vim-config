@@ -85,6 +85,21 @@ endf
 
 func! s:SetConfigurationsAfter () abort
   silent call s:SetFZF()
+  if ! has('nvim') && ! has('gui_mac') && ! has('gui_win32')
+
+    " Set up vertical vs block cursor for insert/normal mode
+    if &term =~ "screen."
+      let &t_ti.="\eP\e[1 q\e\\"
+      let &t_SI.="\eP\e[5 q\e\\"
+      let &t_EI.="\eP\e[1 q\e\\"
+      let &t_te.="\eP\e[0 q\e\\"
+    else
+      let &t_ti.="\<Esc>[1 q"
+      let &t_SI.="\<Esc>[5 q"
+      let &t_EI.="\<Esc>[1 q"
+      let &t_te.="\<Esc>[0 q"
+    endif
+  endif
 endf
 
 func! s:SetBufferOptions () abort
@@ -100,6 +115,23 @@ func! s:Set_user_bindings () abort
 
   " Quick buffer overview an completion to change
   nnoremap gb :ls<CR>:b<Space>
+endf
+
+func! s:FixCursorShapeOnExitNvim () abort
+    augroup RestoreCursorShapeOnExit
+      autocmd!
+      autocmd VimLeave * set guicursor=a:ver100
+    augroup END
+endf
+
+func! s:FixCursorShapeOnExitVim () abort
+  " let &t_ti .= \e[2 q"
+  " let &t_te .= \e[4 q"
+  autocmd VimLeave * let &t_te="\e[?1049l\e[23;0;0t"
+  autocmd VimLeave * let &t_ti="\e[?1049h\e[22;0;0t"
+  autocmd VimLeave * silent !echo -ne "\e[5 q"
+  " autocmd VimLeave * silent !echo -ne \033]112\007"
+  " autocmd VimLeave * :!touch /tmp/vimleave
 endf
 
 func! s:Set_os_specific_before () abort
@@ -166,10 +198,7 @@ func! s:Windows_conf_after () abort
 
   " Windows version of neovim won't set back the cursor shape
   if has('nvim')
-    augroup RestoreCursorShapeOnExit
-      autocmd!
-      autocmd VimLeave * set guicursor=a:ver100
-    augroup END
+    silent call s:FixCursorShapeOnExitNvim()
   endif
 endf
 
@@ -198,6 +227,10 @@ func! s:WSL_conf_after () abort
   call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
 
   silent call s:MoveLinesBlockMapsLinux()
+
+  if ! has('nvim') && ! has('gui_mac') && ! has('gui_win32')
+    silent call s:FixCursorShapeOnExitVim()
+  endif
 endf
 
 " **************  TERMUX specific ********************
