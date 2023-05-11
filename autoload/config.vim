@@ -116,7 +116,7 @@ func! s:Set_user_bindings () abort
   " Quick buffer overview an completion to change
   nnoremap gb :ls<CR>:b<Space>
 
-  # Change to normal mode from terminal mode
+  " Change to normal mode from terminal mode
   tnoremap <leader><Esc> <C-\><C-n>
 endf
 
