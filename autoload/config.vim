@@ -118,6 +118,9 @@ func! s:Set_user_bindings () abort
 
   " Change to normal mode from terminal mode
   tnoremap <leader><Esc> <C-\><C-n>
+
+  " Paste text override word under the cursor
+  nmap <leader>v ciw<C-r>0<ESC>
 endf
 
 func! s:FixCursorShapeOnExitNvim () abort
