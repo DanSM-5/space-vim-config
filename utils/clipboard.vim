@@ -11,6 +11,9 @@ function! s:set_command() abort
   if $IS_WINDOWS == 'true'
     let yank = 'pbcopy.exe'
     let paste = 'pbpaste.exe'
+  elseif $IS_MAC == 'true'
+    let yank = 'pbcopy'
+    let paste = 'pbpaste'
   endif
 
   return [yank, paste]

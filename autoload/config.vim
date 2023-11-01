@@ -23,6 +23,7 @@ let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always
 let s:bind_opts = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
 let s:preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
+let g:bg_value = ''
 
 " Options with only bind commands
 let s:preview_options_bind = { 'options': s:bind_opts }
@@ -544,6 +545,13 @@ func! s:DefineCommands () abort
   " Define user commands
   command! -nargs=1 -complete=shellcmd CallCleanCommand call s:CallCleanCommand(<f-args>)
   command! CleanCR call s:CleanCR()
+
+  " Set toggle background to transparent by default and mapping and function
+  " to toggle it.
+  command! ToggleBg call s:ToggleBg()
+  nnoremap <silent><leader>tb :ToggleBg<CR>
+  autocmd vimenter * let g:bg_value = substitute(trim(execute("hi Normal")), 'xxx', '', 'g')
+  autocmd vimenter * ToggleBg
 endf
 
 func! s:RemapAltUpDownNormal () abort
@@ -717,6 +725,18 @@ function! g:CurrentOS ()
   endif
 
   return known_os
+endfunction
+
+func! s:ToggleBg ()
+  let highlight_value = execute('hi Normal')
+  let ctermbg_value = matchstr(highlight_value, 'ctermbg=\zs\S*')
+  let guibg_value = matchstr(highlight_value, 'guibg=\zs\S*')
+
+  if ctermbg_value == '' && guibg_value ==? ''
+    silent execute('hi ' . g:bg_value)
+  else
+    silent execute('hi Normal guibg=NONE ctermbg=NONE')
+  endif
 endfunction
 
 " Ensure command
