@@ -28,8 +28,8 @@
   enable_tabline_filetype_icon = true
   enable_statusline_mode = false
   # relativenumber = false
-  guifont = "CaskaydiaCove Nerd Font:h18" 
-  # guifont = "DroidSansMono NF:h18" 
+  guifont = "CaskaydiaCove Nerd Font:h18"
+  # guifont = "DroidSansMono NF:h18"
   bootstrap_before = "config#before"
   bootstrap_after = "config#after"
   # autocomplete_method = "coc"
