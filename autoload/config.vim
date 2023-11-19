@@ -48,12 +48,12 @@ let s:preview_options_preview = {'options': s:preview_opts }
 " let s:preview_options_bang_preview = { 'options': ['--preview-window=up,60%'] + s:preview_opts }
 
 " WARNING: Error on nvim from 0.8.0+ with fzf and space vim
-" 
+"
 " Issue is related to set status line which fails if fzf args
 " contain a '%' (e.g. '--preview-window=right,60%' or '--height=80%')
 "
 " The issue shows a the message 'Illegal character <'>'
-" It fails first on SpaceVim#layers#core#statusline#get 
+" It fails first on SpaceVim#layers#core#statusline#get
 " in shell.vim (see snippet below)
 "
 " function! s:on_term_open() abort
@@ -85,7 +85,10 @@ func! s:SetConfigurationsBefore () abort
 endf
 
 func! s:SetConfigurationsAfter () abort
+  " Configure FZF
   silent call s:SetFZF()
+
+  " Change cursor.
   if ! has('nvim') && ! has('gui_mac') && ! has('gui_win32')
 
     " Set up vertical vs block cursor for insert/normal mode
@@ -122,6 +125,9 @@ func! s:Set_user_bindings () abort
 
   " Paste text override word under the cursor
   nmap <leader>v ciw<C-r>0<ESC>
+
+  " Remove all trailing spaces in current buffer
+  nnoremap <silent> <leader>c :%s/\s\+$//e<cr>
 endf
 
 func! s:FixCursorShapeOnExitNvim () abort
@@ -219,7 +225,7 @@ func! s:WSL_conf_before () abort
   let g:rooter_patterns = ["!.SpaceVim.d/", ".git/", "/home/".$USER."/.SpaceVim.d"]
 
   " Prevent changing to .SpaceVim.d directory on /mnt/c/
-  let g:spacevim_project_rooter_patterns = ["!.SpaceVim.d/"] + g:spacevim_project_rooter_patterns 
+  let g:spacevim_project_rooter_patterns = ["!.SpaceVim.d/"] + g:spacevim_project_rooter_patterns
   " Not implemented
   " let g:spacevim_custom_plugins = [
   "   \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
@@ -246,7 +252,7 @@ func! s:Termux_conf_before () abort
   " let g:rooter_patterns = ["!.SpaceVim.d/", '".git/", '"/home/".$USER."/.SpaceVim.d"]
 
   " Prevent changing to .SpaceVim.d directory on /mnt/c/
-  let g:spacevim_project_rooter_patterns = ["!.SpaceVim.d/"] + g:spacevim_project_rooter_patterns 
+  let g:spacevim_project_rooter_patterns = ["!.SpaceVim.d/"] + g:spacevim_project_rooter_patterns
   " Not implemented
   " let g:spacevim_custom_plugins = [
   "   \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
@@ -296,8 +302,8 @@ func! s:SetRG () abort
 
     " No need for caching with rg
     let g:ctrlp_use_caching = 0
-    
-    let g:ctrlp_clear_cache_on_exit = 1 
+
+    let g:ctrlp_clear_cache_on_exit = 1
 
     " For SpaceVim search options
     let profile = SpaceVim#mapping#search#getprofile('rg')
@@ -526,7 +532,7 @@ func! s:SetFZF () abort
   nnoremap <C-P> :GitFZF<CR>
 endf
 
-func! s:SetVimSystemCopyMaps () abort 
+func! s:SetVimSystemCopyMaps () abort
   source ~/.SpaceVim.d/utils/system-copy-maps.vim
 endf
 
@@ -740,7 +746,7 @@ func! s:ToggleBg ()
 endfunction
 
 " Ensure command
-let g:host_os = g:CurrentOS() 
+let g:host_os = g:CurrentOS()
 
 func! config#before () abort
   " Can be used to set different undodir between vim and nvim
