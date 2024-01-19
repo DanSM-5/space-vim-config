@@ -128,6 +128,10 @@ func! s:Set_user_bindings () abort
 
   " Remove all trailing spaces in current buffer
   nnoremap <silent> <leader>c :%s/\s\+$//e<cr>
+
+  " Move between buffers with tab
+  nnoremap <silent> <tab> :bn<cr>
+  nnoremap <silent> <s-tab> :bN<cr>
 endf
 
 func! s:FixCursorShapeOnExitNvim () abort
