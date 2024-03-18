@@ -99,3 +99,6 @@
 
 [[custom_plugins]]
   repo = "bkad/CamelCaseMotion"
+
+[[custom_plugins]]
+  repo = "haya14busa/vim-asterisk"
