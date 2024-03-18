@@ -113,7 +113,7 @@ func! s:SetBufferOptions () abort
   augroup END
 endf
 
-func! s:Set_user_bindings () abort
+func! s:Set_user_keybindings () abort
   silent call s:SetVimSystemCopyMaps()
   silent call s:SetCtrlSFMaps()
 
@@ -128,6 +128,27 @@ func! s:Set_user_bindings () abort
 
   " Remove all trailing spaces in current buffer
   nnoremap <silent> <leader>c :%s/\s\+$//e<cr>
+
+  " Move between buffers with tab
+  nnoremap <silent> <tab> :bn<cr>
+  nnoremap <silent> <s-tab> :bN<cr>
+
+  " vim-asterisk
+  " let g:asterisk#keeppos = 1
+  map *   <Plug>(asterisk-*)
+  map #   <Plug>(asterisk-#)
+  map g*  <Plug>(asterisk-g*)
+  map g#  <Plug>(asterisk-g#)
+  map z*  <Plug>(asterisk-z*)
+  map gz* <Plug>(asterisk-gz*)
+  map z#  <Plug>(asterisk-z#)
+  map gz# <Plug>(asterisk-gz#)
+
+  " Set stay behavior by default
+  " map *  <Plug>(asterisk-z*)
+  " map #  <Plug>(asterisk-z#)
+  " map g* <Plug>(asterisk-gz*)
+  " map g# <Plug>(asterisk-gz#)
 endf
 
 func! s:FixCursorShapeOnExitNvim () abort
@@ -757,7 +778,7 @@ func! config#before () abort
 endf
 
 func! config#after () abort
-  silent call s:Set_user_bindings()
+  silent call s:Set_user_keybindings()
   silent call s:Set_os_specific_after()
   silent call s:SetConfigurationsAfter()
 endf

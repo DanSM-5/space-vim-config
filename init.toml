@@ -111,3 +111,7 @@
 [[custom_plugins]]
   repo = "bkad/CamelCaseMotion"
   merged = false
+
+[[custom_plugins]]
+  repo = "haya14busa/vim-asterisk"
+  merged = false
