@@ -123,6 +123,9 @@ func! s:Set_user_keybindings () abort
   " Change to normal mode from terminal mode
   tnoremap <leader><Esc> <C-\><C-n>
 
+  " Clean carriage returns '^M'
+  nnoremap <silent> <Leader>r :%s/\r$//g<cr>
+
   " Paste text override word under the cursor
   nmap <leader>v ciw<C-r>0<ESC>
 
