@@ -178,6 +178,8 @@ func! s:Set_os_specific_before () abort
     silent call s:WSL_conf_before()
   elseif g:is_termux
     silent call s:Termux_conf_before()
+  elseif g:is_linux
+    silent call s:Linux_conf_before()
   elseif os == s:windows
     silent call s:Windows_conf_before()
   elseif os == s:mac
@@ -192,6 +194,8 @@ func! s:Set_os_specific_after () abort
     silent call s:WSL_conf_after()
   elseif g:is_termux
     silent call s:Termux_conf_after()
+  elseif g:is_linux
+    silent call s:Linux_conf_after()
   elseif os == s:windows
     silent call s:Windows_conf_after()
   elseif os == s:mac
@@ -288,6 +292,19 @@ func! s:Termux_conf_after () abort
   let g:system_copy#paste_command = 'termux-clipboard-get'
   let g:system_copy#copy_command = 'termux-clipboard-set'
   " silent call s:MoveLinesBlockMapsLinux()
+endf
+
+" **************  LINUX specific ********************
+func! s:Linux_conf_before () abort
+  if has('nvim')
+    let g:python3_host_prog = 'python3'
+  endif
+
+  let g:rooter_change_directory_for_non_project_files = 'current'
+endf
+
+func! s:Linux_conf_after () abort
+  " Run after
 endf
 
 " **************  MAC specific ********************
