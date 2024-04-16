@@ -20,32 +20,32 @@ let g:host_os = 'unknown'
 
 " General options
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
-let s:bind_opts = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
-let s:preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
+let s:fzf_bind_options = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
+let s:fzf_preview_options = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:fzf_bind_options
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
 let g:bg_value = ''
 
 " Options with only bind commands
-let s:preview_options_bind = { 'options': s:bind_opts }
-" let s:preview_options_bang_bind = { 'options': s:bind_opts }
+let s:fzf_options_with_binds = { 'options': s:fzf_bind_options }
+" let s:preview_options_bang_bind = { 'options': s:fzf_bind_options }
 
 " Options with bindings + preview
-let s:preview_options_preview = {'options': s:preview_opts }
-" let s:preview_options_bang_preview = { 'options': s:preview_opts }
+let s:fzf_options_with_preview = {'options': s:fzf_preview_options }
+" let s:preview_options_bang_preview = { 'options': s:fzf_preview_options }
 
 " Test options for formationg window
 " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
-" let s:preview_options_bind = { 'window': { 'width': 0.9, 'height': 0.6 } }
-" let s:preview_options_bind = { 'window': { 'up': '60%' } }
+" let s:fzf_options_with_binds = { 'window': { 'width': 0.9, 'height': 0.6 } }
+" let s:fzf_options_with_binds = { 'window': { 'up': '60%' } }
 
 " Uncomment for debug
 " echo 'FZF default opts: ' . $FZF_DEFAULT_OPTS
 
 " INFO: Original values before nvim 0.8.0+
-" let s:preview_options = {'options': s:preview_opts }
-" let s:preview_options_bind = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:bind_opts }
-" let s:preview_options_bind = { 'options': ['--preview-window=up,60%'] + s:bind_opts }
-" let s:preview_options_bang_preview = { 'options': ['--preview-window=up,60%'] + s:preview_opts }
+" let s:preview_options = {'options': s:fzf_preview_options }
+" let s:fzf_options_with_binds = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:fzf_bind_options }
+" let s:fzf_options_with_binds = { 'options': ['--preview-window=up,60%'] + s:fzf_bind_options }
+" let s:preview_options_bang_preview = { 'options': ['--preview-window=up,60%'] + s:fzf_preview_options }
 
 " WARNING: Error on nvim from 0.8.0+ with fzf and space vim
 "
@@ -123,6 +123,9 @@ func! s:Set_user_keybindings () abort
   " Change to normal mode from terminal mode
   tnoremap <leader><Esc> <C-\><C-n>
 
+  " Clean carriage returns '^M'
+  nnoremap <silent> <Leader>r :%s/\r$//g<cr>
+
   " Paste text override word under the cursor
   nmap <leader>v ciw<C-r>0<ESC>
 
@@ -175,6 +178,8 @@ func! s:Set_os_specific_before () abort
     silent call s:WSL_conf_before()
   elseif g:is_termux
     silent call s:Termux_conf_before()
+  elseif g:is_linux
+    silent call s:Linux_conf_before()
   elseif os == s:windows
     silent call s:Windows_conf_before()
   elseif os == s:mac
@@ -189,6 +194,8 @@ func! s:Set_os_specific_after () abort
     silent call s:WSL_conf_after()
   elseif g:is_termux
     silent call s:Termux_conf_after()
+  elseif g:is_linux
+    silent call s:Linux_conf_after()
   elseif os == s:windows
     silent call s:Windows_conf_after()
   elseif os == s:mac
@@ -285,6 +292,19 @@ func! s:Termux_conf_after () abort
   let g:system_copy#paste_command = 'termux-clipboard-get'
   let g:system_copy#copy_command = 'termux-clipboard-set'
   " silent call s:MoveLinesBlockMapsLinux()
+endf
+
+" **************  LINUX specific ********************
+func! s:Linux_conf_before () abort
+  if has('nvim')
+    let g:python3_host_prog = 'python3'
+  endif
+
+  let g:rooter_change_directory_for_non_project_files = 'current'
+endf
+
+func! s:Linux_conf_after () abort
+  " Run after
 endf
 
 " **************  MAC specific ********************
@@ -404,7 +424,7 @@ endf
 "   if a:fullscreen
 "     return s:UpdateFzfDefaultArgs(s:preview_options_bang_preview, a:fullscreen)
 "   else
-"     return s:UpdateFzfDefaultArgs(s:preview_options_preview, a:fullscreen)
+"     return s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, a:fullscreen)
 "   endif
 " endf
 
@@ -412,7 +432,7 @@ endf
 "   if a:fullscreen
 "     return s:UpdateFzfDefaultArgs(s:preview_options_bang_bind, a:fullscreen)
 "   else
-"     return s:UpdateFzfDefaultArgs(s:preview_options_bind, a:fullscreen)
+"     return s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, a:fullscreen)
 "   endif
 " endf
 
@@ -426,16 +446,16 @@ function! s:FzfRgWindows_preview(spec, fullscreen) abort
   " echo command_preview
 
   if has_key(a:spec, 'options')
-    let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:UpdateFzfDefaultArgs(s:bind_opts, a:fullscreen)
+    let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:UpdateFzfDefaultArgs(s:fzf_bind_options, a:fullscreen)
   else
-    let a:spec.options = s:UpdateFzfDefaultArgs(s:preview_opts, a:fullscreen)
+    let a:spec.options = s:UpdateFzfDefaultArgs(s:fzf_preview_options, a:fullscreen)
   endif
 
   return a:spec
 endfunction
 
 function! s:FzfRg_bindings(options) abort
-  return a:options + s:bind_opts
+  return a:options + s:fzf_bind_options
 endfunction
 
 function! RipgrepFzf(query, fullscreen)
@@ -478,7 +498,7 @@ func! s:SetFZF () abort
   command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
 
   command! -bang -nargs=? -complete=dir Files
-    \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:preview_options_preview, <bang>0), <bang>0)
+    \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
 
   if g:is_windows
 
@@ -486,9 +506,9 @@ func! s:SetFZF () abort
     command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:preview_options_preview, <bang>0), <bang>0)
+      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:preview_options_preview, <bang>0), <bang>0)
+      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -499,9 +519,9 @@ func! s:SetFZF () abort
     command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:preview_options_preview, <bang>0), <bang>0)
+      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:preview_options_preview, <bang>0), <bang>0)
+      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -510,14 +530,14 @@ func! s:SetFZF () abort
   elseif g:is_mac
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:preview_options_bind, <bang>0)), <bang>0)
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:preview_options_bind, <bang>0)), <bang>0)
+      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
 
     command! -bang -nargs=* Rg
       \ call fzf#vim#grep(
       \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
-      \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:preview_options_bind, <bang>0)), <bang>0)
+      \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=π"
@@ -526,14 +546,14 @@ func! s:SetFZF () abort
   else
     " Linux
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:preview_options_bind, <bang>0)), <bang>0)
+      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:preview_options_bind, <bang>0)), <bang>0)
+      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
 
     command! -bang -nargs=* Rg
       \ call fzf#vim#grep(
       \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
-      \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:preview_options_bind, <bang>0)), <bang>0)
+      \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -541,9 +561,9 @@ func! s:SetFZF () abort
 
     " else
     " command! -bang -nargs=? -complete=dir FzfFiles
-    "       \ call fzf#vim#files(<q-args>, <bang>0 ? s:preview_options_bind : s:preview_options_preview, <bang>0)
+    "       \ call fzf#vim#files(<q-args>, <bang>0 ? s:fzf_options_with_binds : s:fzf_options_with_preview, <bang>0)
     " command! -bang -nargs=? -complete=dir GitFZF
-    "       \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:preview_options_bind : s:preview_options_preview), <bang>0)
+    "       \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(<bang>0 ? s:fzf_options_with_binds : s:fzf_options_with_preview), <bang>0)
 
   endif
 

@@ -45,8 +45,8 @@
 
 [[layers]]
   name = 'shell'
-  default_position = 'top'
-  default_height = 30
+  default_position = 'right'
+  default_height = 50
 
 [[layers]]
   name = "fzf"
