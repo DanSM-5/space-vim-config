@@ -21,7 +21,7 @@ let g:host_os = 'unknown'
 " General options
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
 let s:bind_opts = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
-let s:preview_opts = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
+let s:fzf_preview_options = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
 let g:bg_value = ''
 
@@ -30,8 +30,8 @@ let s:fzf_options_with_binds = { 'options': s:bind_opts }
 " let s:preview_options_bang_bind = { 'options': s:bind_opts }
 
 " Options with bindings + preview
-let s:fzf_options_with_preview = {'options': s:preview_opts }
-" let s:preview_options_bang_preview = { 'options': s:preview_opts }
+let s:fzf_options_with_preview = {'options': s:fzf_preview_options }
+" let s:preview_options_bang_preview = { 'options': s:fzf_preview_options }
 
 " Test options for formationg window
 " let g:fzf_preview_window = ['right:60%', 'ctrl-/']
@@ -42,10 +42,10 @@ let s:fzf_options_with_preview = {'options': s:preview_opts }
 " echo 'FZF default opts: ' . $FZF_DEFAULT_OPTS
 
 " INFO: Original values before nvim 0.8.0+
-" let s:preview_options = {'options': s:preview_opts }
+" let s:preview_options = {'options': s:fzf_preview_options }
 " let s:fzf_options_with_binds = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:bind_opts }
 " let s:fzf_options_with_binds = { 'options': ['--preview-window=up,60%'] + s:bind_opts }
-" let s:preview_options_bang_preview = { 'options': ['--preview-window=up,60%'] + s:preview_opts }
+" let s:preview_options_bang_preview = { 'options': ['--preview-window=up,60%'] + s:fzf_preview_options }
 
 " WARNING: Error on nvim from 0.8.0+ with fzf and space vim
 "
@@ -431,7 +431,7 @@ function! s:FzfRgWindows_preview(spec, fullscreen) abort
   if has_key(a:spec, 'options')
     let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:UpdateFzfDefaultArgs(s:bind_opts, a:fullscreen)
   else
-    let a:spec.options = s:UpdateFzfDefaultArgs(s:preview_opts, a:fullscreen)
+    let a:spec.options = s:UpdateFzfDefaultArgs(s:fzf_preview_options, a:fullscreen)
   endif
 
   return a:spec
