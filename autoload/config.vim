@@ -20,14 +20,14 @@ let g:host_os = 'unknown'
 
 " General options
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
-let s:bind_opts = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
-let s:fzf_preview_options = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:bind_opts
+let s:fzf_bind_options = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
+let s:fzf_preview_options = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:fzf_bind_options
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
 let g:bg_value = ''
 
 " Options with only bind commands
-let s:fzf_options_with_binds = { 'options': s:bind_opts }
-" let s:preview_options_bang_bind = { 'options': s:bind_opts }
+let s:fzf_options_with_binds = { 'options': s:fzf_bind_options }
+" let s:preview_options_bang_bind = { 'options': s:fzf_bind_options }
 
 " Options with bindings + preview
 let s:fzf_options_with_preview = {'options': s:fzf_preview_options }
@@ -43,8 +43,8 @@ let s:fzf_options_with_preview = {'options': s:fzf_preview_options }
 
 " INFO: Original values before nvim 0.8.0+
 " let s:preview_options = {'options': s:fzf_preview_options }
-" let s:fzf_options_with_binds = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:bind_opts }
-" let s:fzf_options_with_binds = { 'options': ['--preview-window=up,60%'] + s:bind_opts }
+" let s:fzf_options_with_binds = { 'options': ['--preview-window=right,60%', '--height=80%'] + s:fzf_bind_options }
+" let s:fzf_options_with_binds = { 'options': ['--preview-window=up,60%'] + s:fzf_bind_options }
 " let s:preview_options_bang_preview = { 'options': ['--preview-window=up,60%'] + s:fzf_preview_options }
 
 " WARNING: Error on nvim from 0.8.0+ with fzf and space vim
@@ -429,7 +429,7 @@ function! s:FzfRgWindows_preview(spec, fullscreen) abort
   " echo command_preview
 
   if has_key(a:spec, 'options')
-    let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:UpdateFzfDefaultArgs(s:bind_opts, a:fullscreen)
+    let a:spec.options = a:spec.options + ['--preview',  command_preview] + s:UpdateFzfDefaultArgs(s:fzf_bind_options, a:fullscreen)
   else
     let a:spec.options = s:UpdateFzfDefaultArgs(s:fzf_preview_options, a:fullscreen)
   endif
@@ -438,7 +438,7 @@ function! s:FzfRgWindows_preview(spec, fullscreen) abort
 endfunction
 
 function! s:FzfRg_bindings(options) abort
-  return a:options + s:bind_opts
+  return a:options + s:fzf_bind_options
 endfunction
 
 function! RipgrepFzf(query, fullscreen)
