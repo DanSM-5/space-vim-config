@@ -20,7 +20,7 @@ let g:host_os = 'unknown'
 
 " General options
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
-let s:fzf_bind_options = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
+let s:fzf_bind_options = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down', '--bind', 'ctrl-s:toggle-sort']
 let s:fzf_preview_options = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:fzf_bind_options
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
 let g:bg_value = ''
