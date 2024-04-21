@@ -17,9 +17,9 @@ if [ "$1" = --tag ]; then
 fi
 
 IFS=':' read -r -a INPUT <<< "$1"
-FILE=${INPUT[0]}
-CENTER=${INPUT[1]}
-NUMBER=${INPUT[2]}
+FILE=${INPUT[0]}    # 'C' | filename
+CENTER=${INPUT[1]}  # filename | 'number'
+NUMBER=${INPUT[2]}  # 'number' | ...
 
 # echo "$NUMBER"
 
@@ -51,11 +51,17 @@ fi
 # echo "$CENTER"
 # CENTER="${CENTER/#\~\//$MSWINHOME/}"
 
-FILE="/${FILE,,}${CENTER}"
-FILE="$( sed -r 's/\\+/\//g' <<< $FILE )"
-CENTER="$NUMBER"
+TESTNAME="/${FILE,,}${CENTER}"
+TESTNAME="$( sed -r 's/\\+/\//g' <<< $TESTNAME )"
 
-if [ ! -r "$FILE" ]; then
+# FILE is absolute path
+if [[ "$FILE" =~ ^[A-Za-z]$ ]] && [ -r "$TESTNAME" ]; then
+  FILE="$TESTNAME"
+  CENTER="$NUMBER"
+elif [ -r "$FILE" ]; then
+  FILE="$( sed -r 's/\\+/\//g' <<< $FILE )"
+else
+  echo "$TESTNAME"
   echo "File not found ${FILE}"
   exit 1
 fi
