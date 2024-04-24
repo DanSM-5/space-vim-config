@@ -20,9 +20,14 @@ let g:host_os = 'unknown'
 
 " General options
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
-let s:fzf_base_options = [ '--multi', '--ansi', '--info=inline' ]
-let s:fzf_bind_options = s:fzf_base_options + ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down', '--bind', 'ctrl-s:toggle-sort']
-let s:fzf_preview_options = ['--layout=reverse', '--preview', 'bat --color=always {}'] + s:fzf_bind_options
+let s:fzf_base_options = [ '--multi', '--ansi', '--info=inline', '--bind', 'alt-c:clear-query' ]
+let s:fzf_bind_options = s:fzf_base_options + ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down', '--bind', 'ctrl-s:toggle-sort',
+      \                                        '--cycle',
+      \                                        '--bind', 'alt-f:first',
+      \                                        '--bind', 'alt-l:last',
+      \                                        '--bind', 'alt-a:select-all',
+      \                                        '--bind', 'alt-d:deselect-all']
+let s:fzf_preview_options = ['--layout=reverse', '--preview', 'bat -pp --color=always --style=numbers {}'] + s:fzf_bind_options
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
 let g:bg_value = ''
 
@@ -414,7 +419,6 @@ func! s:RestoreFzfDefaultArgs (config) abort
 endf
 
 func! s:UpdateFzfDefaultArgs (config, set_up) abort
-  return a:config
   if a:set_up
     let $FZF_DEFAULT_OPTS = s:fzf_original_default_opts . " --preview-window=up,60%"
   else
@@ -439,6 +443,16 @@ endf
 "     return s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, a:fullscreen)
 "   endif
 " endf
+
+function! s:Fzf_vim_files(query, options, fullscreen) abort
+  let spec = fzf#vim#with_preview({ 'options': [] }, a:fullscreen)
+  " Append options after to get better keybindings for 'ctrl-/'
+  let spec.options = spec.options + a:options
+
+  call s:UpdateFzfDefaultArgs({}, a:fullscreen)
+  call fzf#vim#files(a:query, spec, a:fullscreen)
+  call s:RestoreFzfDefaultArgs({})
+endfunction
 
 function! s:FzfRgWindows_preview(spec, fullscreen) abort
 
@@ -477,8 +491,6 @@ function! RipgrepFzf(query, fullscreen)
         \     'options': ['--disabled', '--query', a:query,
         \                 '--ansi', '--prompt', 'RG> ',
         \                 '--multi', '--delimiter', ':', '--preview-window', '+{2}-/2',
-        \                 '--bind', 'alt-a:select-all',
-        \                 '--bind', 'alt-d:deselect-all',
         \                 '--bind', 'start:reload:'.initial_command,
         \                 '--bind', 'change:reload:'.reload_command]
         \}
@@ -555,7 +567,7 @@ func! s:SetFZF () abort
   command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
   command! -bang -nargs=? -complete=dir Files
-    \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+    \ call s:Fzf_vim_files(<q-args>, s:fzf_preview_options, <bang>0)
 
   if g:is_windows
 
@@ -563,9 +575,9 @@ func! s:SetFZF () abort
     " command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_preview_options, <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -576,9 +588,9 @@ func! s:SetFZF () abort
     " command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_preview_options, <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -587,9 +599,9 @@ func! s:SetFZF () abort
   elseif g:is_mac
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_bind_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_bind_options, <bang>0)
 
     " command! -bang -nargs=* Rg
     "   \ call fzf#vim#grep(
@@ -603,9 +615,9 @@ func! s:SetFZF () abort
   else
     " Linux
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_bind_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_bind_options, <bang>0)
 
     " command! -bang -nargs=* Rg
     "   \ call fzf#vim#grep(
