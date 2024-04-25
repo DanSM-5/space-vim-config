@@ -454,6 +454,46 @@ function! s:Fzf_vim_files(query, options, fullscreen) abort
   call s:RestoreFzfDefaultArgs({})
 endfunction
 
+function! s:FzfSelectedList(list) abort
+  echo a:list
+  if len(a:list) == 0
+    return
+  elseif len(a:list) == 1
+    if isdirectory(a:list[0])
+      call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
+    elseif !empty(glob(a:list[0])) " Is file
+      exec ':e '  . a:list[0]
+    endif
+  else
+    if isdirectory(a:list[0])
+      " Use first selected directory only!
+      call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
+    elseif !empty(glob(a:list[0])) " Is file
+      " Open multiple files
+      for sfile in a:list
+        exec ':e ' . sfile
+      endfor
+    endif
+  endif
+  " call fzf#run({ 'source': '$user_conf_path/utils/getprojects', 'options': [ '--multi' ], 'sinklist': function('g:Something') })
+endfunction
+
+function! g:FzfChangeProject() abort
+  let current = GitPath()
+  let fzf_rg_args = ' --glob=^"^!.git^" --glob=^"^!node_modules^" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
+
+  let spec = {
+    \   'sinklist': function('s:FzfSelectedList'),
+    \   'source': '$user_conf_path/utils/getprojects',
+    \   'options': [
+    \   ]
+    \ }
+
+  let spec.options = spec.options + s:fzf_preview_options
+
+  call fzf#run(fzf#wrap(spec))
+endfunction
+
 function! s:FzfRgWindows_preview(spec, fullscreen) abort
 
   let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
