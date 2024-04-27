@@ -458,12 +458,6 @@ function! s:FzfSelectedList(list) abort
   echo a:list
   if len(a:list) == 0
     return
-  elseif len(a:list) == 1
-    if isdirectory(a:list[0])
-      call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
-    elseif !empty(glob(a:list[0])) " Is file
-      exec ':e '  . a:list[0]
-    endif
   else
     if isdirectory(a:list[0])
       " Use first selected directory only!
@@ -475,22 +469,62 @@ function! s:FzfSelectedList(list) abort
       endfor
     endif
   endif
-  " call fzf#run({ 'source': '$user_conf_path/utils/getprojects', 'options': [ '--multi' ], 'sinklist': function('g:Something') })
 endfunction
 
-function! g:FzfChangeProject() abort
-  let current = GitPath()
-  let fzf_rg_args = ' --glob=^"^!.git^" --glob=^"^!node_modules^" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
+function! s:WindowsShortPath(path) abort
+  " From fzf.vim
+  " Changes paths like 'C:/Program Files' that have spaces into C:/PROGRA~1
+  " which is nicer as we avoid escaping
+  return split(system('for %A in ("'. a:path .'") do @echo %~sA'), "\n")[0]
+endfunction
 
+function! FzfChangeProject() abort
+  let user_conf_path = substitute($user_conf_path, '\\', '/', 'g')
+  let preview = user_conf_path . '/utils/fzf-preview.sh {}'
+  let getprojects = user_conf_path . '/utils/getprojects'
+  let reload_command = getprojects
+  let files_command = "fd --type file --color=always --no-ignore --hidden --exclude node_modules --exclude .git "
+
+  " This a lot of workaounds 😅
+  if g:is_windows
+    " Get env.exe from gitbash
+    let gitenv = substitute(system('where.exe env | awk "/[Gg]it/ {print}" | tr -d "\r\n"'), '\n', '', '')
+    let gitenv = s:WindowsShortPath(gitenv)
+    let gitenv = shellescape(substitute(gitenv, '\\', '/', 'g'))
+    let bash = substitute(s:WindowsShortPath(g:bash), '\\', '/', 'g')
+    let preview = bash . ' ' . preview
+    " Hack to run a bash script without adding -l or -i flags (faster)
+    let envcommand = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; '
+    let getprojects = envcommand . getprojects . '"'
+
+    " If gitbash, you can call a script directly
+    " Otherwise you need to pass the same source command as the starting point
+    if $IS_GITBASH == 'true'
+      let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
+    else
+      let reload_command = getprojects
+      " arg --path-separator ''/'' (double quotes but vim script uncomments
+      " the rest lol) breaks in gitbash... why?
+      let files_command = files_command . ' --path-separator "/" '
+    endif
+  endif
+
+  " Notice ctrl-d doesn't work on Windows nvim
   let spec = {
     \   'sinklist': function('s:FzfSelectedList'),
-    \   'source': '$user_conf_path/utils/getprojects',
+    \   'source': getprojects,
     \   'options': [
-    \   ]
+    \     '--prompt', 'Projs> ',
+    \     '--multi', '--ansi',
+    \     '--layout=reverse',
+    \     '--bind', 'ctrl-f:change-prompt(Files> )+reload(' . files_command . ' . {})+clear-query+unbind(ctrl-f)',
+    \     '--bind', 'ctrl-r:change-prompt(Projs> )+reload(' . reload_command . ')+rebind(ctrl-f)+clear-query',
+    \     '--preview', preview]
     \ }
 
-  let spec.options = spec.options + s:fzf_preview_options
+  let spec.options = s:fzf_bind_options + spec.options
 
+  " Hope for the best
   call fzf#run(fzf#wrap(spec))
 endfunction
 
@@ -603,6 +637,7 @@ func! s:SetFZF () abort
   "   \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
   "   \   g:is_windows ? s:FzfRgWindows_preview({}, <bang>0) : fzf#vim#with_preview(), <bang>0)
 
+  command! -nargs=* CPrj call FzfChangeProject()
   command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
   command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
@@ -680,6 +715,7 @@ func! s:SetFZF () abort
   " Set key mappings
   nnoremap <A-p> :GitFZF!<CR>
   nnoremap <C-P> :GitFZF<CR>
+  nnoremap <C-o>p :CPrj<CR>
 endf
 
 func! s:SetVimSystemCopyMaps () abort
