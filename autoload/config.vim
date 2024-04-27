@@ -493,15 +493,18 @@ function! FzfChangeProject() abort
     let gitenv = shellescape(substitute(gitenv, '\\', '/', 'g'))
     let bash = substitute(s:WindowsShortPath(g:bash), '\\', '/', 'g')
     let preview = bash . ' ' . preview
-    " Hack to run a bash script without adding -l or -i flags (faster)
-    let envcommand = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; '
-    let getprojects = envcommand . getprojects . '"'
 
-    " If gitbash, you can call a script directly
-    " Otherwise you need to pass the same source command as the starting point
     if $IS_GITBASH == 'true'
+      " If gitbash, you can call a script directly
+      " Otherwise you need to pass the same source command as the starting point
       let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
+      " Hack to run a bash script without adding -l or -i flags (faster)
+      " gitbash needs to escape the PATH varibable '\$PATH'
+      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
     else
+      " Hack to run a bash script without adding -l or -i flags (faster)
+      " powershell does not need to escape the PATH varibable '$PATH'
+      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
       let reload_command = getprojects
       " arg --path-separator ''/'' (double quotes but vim script uncomments
       " the rest lol) breaks in gitbash... why?
