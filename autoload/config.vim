@@ -893,10 +893,16 @@ function! g:CurrentOS ()
   if has("gui_mac") || os ==? 'Darwin'
     let g:is_mac = 1
     let known_os = s:mac
+  " TODO: Fix windows falling in this detection
   " Gitbash and Msys zsh does not report ming on first run
   elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS' || $IS_GITBASH == 'true'
+    if $IS_POWERSHELL == 'true' || $IS_CMD == 'true'
+      let g:is_gitbash = 0
+    else
+      let g:is_gitbash = 1
+    endif
+
     let g:is_windows = 1
-    let g:is_gitbash = 1
     let known_os = s:windows
   elseif has('win32') || has("gui_win32")
     let g:is_windows = 1
@@ -947,3 +953,4 @@ func! config#after () abort
   silent call s:Set_os_specific_after()
   silent call s:SetConfigurationsAfter()
 endf
+
