@@ -502,13 +502,14 @@ function! FzfChangeProject() abort
       " gitbash needs to escape the PATH varibable '\$PATH'
       let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
     else
+      let home = substitute($USERPROFILE, '\\', '/', 'g')
       " Hack to run a bash script without adding -l or -i flags (faster)
       " powershell does not need to escape the PATH varibable '$PATH'
-      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      let getprojects = gitenv . ' HOME=' . home . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
       let reload_command = getprojects
       " arg --path-separator ''/'' (double quotes but vim script uncomments
       " the rest lol) breaks in gitbash... why?
-      let files_command = files_command . ' --path-separator "/" '
+      let files_command = files_command . ' --path-separator "/"'
     endif
   endif
 
