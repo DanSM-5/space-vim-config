@@ -20,8 +20,14 @@ let g:host_os = 'unknown'
 
 " General options
 let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob "!.git" --glob "!node_modules" '
-let s:fzf_bind_options = ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down']
-let s:fzf_preview_options = ['--layout=reverse', '--info=inline', '--preview', 'bat --color=always {}'] + s:fzf_bind_options
+let s:fzf_base_options = [ '--multi', '--ansi', '--info=inline', '--bind', 'alt-c:clear-query' ]
+let s:fzf_bind_options = s:fzf_base_options + ['--bind', 'ctrl-l:change-preview-window(down|hidden|),ctrl-/:change-preview-window(down|hidden|),alt-up:preview-page-up,alt-down:preview-page-down', '--bind', 'ctrl-s:toggle-sort',
+      \                                        '--cycle',
+      \                                        '--bind', 'alt-f:first',
+      \                                        '--bind', 'alt-l:last',
+      \                                        '--bind', 'alt-a:select-all',
+      \                                        '--bind', 'alt-d:deselect-all']
+let s:fzf_preview_options = ['--layout=reverse', '--preview', 'bat -pp --color=always --style=numbers {}'] + s:fzf_bind_options
 let s:fzf_original_default_opts = $FZF_DEFAULT_OPTS
 let g:bg_value = ''
 
@@ -211,12 +217,14 @@ func! s:Windows_conf_before () abort
   set shell=cmd
   set shellcmdflag=/c
 
-  if has("gui_running") || ! has('nvim')
-    " Vim and Gvim requires additional escaping on \r\n
-    let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\\r\\n\" "), '\n', '', '')
-  else
-    let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
-  endif
+  let g:bash = substitute(system('where.exe bash | awk "/[Gg]it/ {print}" | tr -d "\r\n"'), '\n', '', '')
+  " if has("gui_running") || ! has('nvim')
+  "   " Vim and Gvim requires additional escaping on \r\n
+  "   let g:bash = substitute(system('where.exe bash | awk '"/[Gg]it/ {print}" | tr -d '"\r\n"'), '\n', '', '')
+  "   let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\\r\\n\" "), '\n', '', '')
+  " else
+  "   let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
+  " endif
 
   let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
   " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
@@ -436,6 +444,94 @@ endf
 "   endif
 " endf
 
+function! s:Fzf_vim_files(query, options, fullscreen) abort
+  let spec = fzf#vim#with_preview({ 'options': [] }, a:fullscreen)
+  " Append options after to get better keybindings for 'ctrl-/'
+  let spec.options = spec.options + a:options
+
+  call s:UpdateFzfDefaultArgs({}, a:fullscreen)
+  call fzf#vim#files(a:query, spec, a:fullscreen)
+  call s:RestoreFzfDefaultArgs({})
+endfunction
+
+function! s:FzfSelectedList(list) abort
+  echo a:list
+  if len(a:list) == 0
+    return
+  else
+    if isdirectory(a:list[0])
+      " Use first selected directory only!
+      call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
+    elseif !empty(glob(a:list[0])) " Is file
+      " Open multiple files
+      for sfile in a:list
+        exec ':e ' . sfile
+      endfor
+    endif
+  endif
+endfunction
+
+function! s:WindowsShortPath(path) abort
+  " From fzf.vim
+  " Changes paths like 'C:/Program Files' that have spaces into C:/PROGRA~1
+  " which is nicer as we avoid escaping
+  return split(system('for %A in ("'. a:path .'") do @echo %~sA'), "\n")[0]
+endfunction
+
+function! FzfChangeProject() abort
+  let user_conf_path = substitute($user_conf_path, '\\', '/', 'g')
+  let preview = user_conf_path . '/utils/fzf-preview.sh {}'
+  let getprojects = user_conf_path . '/utils/getprojects'
+  let reload_command = getprojects
+  let files_command = "fd --type file --color=always --no-ignore --hidden --exclude node_modules --exclude .git "
+
+  " This a lot of workaounds 😅
+  if g:is_windows
+    " Get env.exe from gitbash
+    let gitenv = substitute(system('where.exe env | awk "/[Gg]it/ {print}" | tr -d "\r\n"'), '\n', '', '')
+    let gitenv = s:WindowsShortPath(gitenv)
+    let gitenv = shellescape(substitute(gitenv, '\\', '/', 'g'))
+    let bash = substitute(s:WindowsShortPath(g:bash), '\\', '/', 'g')
+    let preview = bash . ' ' . preview
+
+    if $IS_GITBASH == 'true'
+      " If gitbash, you can call a script directly
+      " Otherwise you need to pass the same source command as the starting point
+      let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
+      " Hack to run a bash script without adding -l or -i flags (faster)
+      " gitbash needs to escape the PATH varibable '\$PATH'
+      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+    else
+      let home = substitute($USERPROFILE, '\\', '/', 'g')
+      " Hack to run a bash script without adding -l or -i flags (faster)
+      " powershell does not need to escape the PATH varibable '$PATH'
+      let getprojects = gitenv . ' HOME=' . home . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      let reload_command = getprojects
+      " arg --path-separator ''/'' (double quotes but vim script uncomments
+      " the rest lol) breaks in gitbash... why?
+      let files_command = files_command . ' --path-separator "/"'
+    endif
+  endif
+
+  " Notice ctrl-d doesn't work on Windows nvim
+  let spec = {
+    \   'sinklist': function('s:FzfSelectedList'),
+    \   'source': getprojects,
+    \   'options': [
+    \     '--prompt', 'Projs> ',
+    \     '--no-multi', '--ansi',
+    \     '--layout=reverse',
+    \     '--bind', 'ctrl-f:change-prompt(Files> )+reload(' . files_command . ' . {})+clear-query+change-multi+unbind(ctrl-f)',
+    \     '--bind', 'ctrl-r:change-prompt(Projs> )+reload(' . reload_command . ')+rebind(ctrl-f)+clear-query+change-multi(0)',
+    \     '--preview', preview]
+    \ }
+
+  let spec.options = s:fzf_bind_options + spec.options
+
+  " Hope for the best
+  call fzf#run(fzf#wrap(spec))
+endfunction
+
 function! s:FzfRgWindows_preview(spec, fullscreen) abort
 
   let bash_path = shellescape(substitute(g:bash, '\\', '/', 'g'))
@@ -459,33 +555,83 @@ function! s:FzfRg_bindings(options) abort
 endfunction
 
 function! RipgrepFzf(query, fullscreen)
-  let command_fmt = 'rg' . s:rg_args . '-- %s ' . GitPath() . ' || true'
-  let initial_command = printf(command_fmt, shellescape(a:query))
+  let fzf_rg_args = s:rg_args
+
+  if g:is_windows
+    " git bash and zsh require escaping globs
+    let fzf_rg_args = ' --glob=^"^!.git^" --glob=^"^!node_modules^" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
+  endif
+
+  let command_fmt = 'rg' . fzf_rg_args . '-- %s || true'
+  let initial_command = printf(command_fmt, fzf#shellescape(a:query))
   let reload_command = printf(command_fmt, '{q}')
-  let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
+  let spec = {
+        \     'options': ['--disabled', '--query', a:query,
+        \                 '--ansi', '--prompt', 'RG> ',
+        \                 '--multi', '--delimiter', ':', '--preview-window', '+{2}-/2',
+        \                 '--bind', 'start:reload:'.initial_command,
+        \                 '--bind', 'change:reload:'.reload_command]
+        \}
+
+  " TODO: From fzf.vim
+  " The g:fzf_vim dictionary can be used to alter the behavior of the
+  " preview
+  " let g:fzf_vim.preview_bash = 'C:\Git\bin\bash.exe' " for setting gitbash
+  " let g:fzf_vim.preview_window = ['hidden,right,50%,<70(up,40%)', 'ctrl-/']
+  "
+  " Consider using this instead of changing FZF_DEFAULT_OPTS environment
+  " variable
+  " let g:fzf_vim = {}
+  " let g:fzf_vim.preview_window = ['right,80%', 'ctrl-/']
+  " let g:fzf_vim.preview_bash = g:bash
 
   if g:is_windows
     let command_with_preview = s:FzfRgWindows_preview(spec, a:fullscreen)
   else
-    let spec.options = s:FzfRg_bindings(spec.options)
     let command_with_preview = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
+    let command_with_preview.options = command_with_preview.options + s:fzf_bind_options
   endif
 
-  call fzf#vim#grep(initial_command, 1, command_with_preview, a:fullscreen)
+  " fzf.vim examples
+  " call fzf#vim#grep2("rg --column --line-number --no-heading --color=always --smart-case -- ", <q-args>, fzf#vim#with_preview(), <bang>0)
+  " call fzf#vim#grep2("rg --column --line-number --no-heading --color=always --smart-case -- ", a:query, fzf#vim#with_preview(), a:fullscreen)
+
+  " Change path to get relative 'short' paths in the fzf search
+  let curr_path = getcwd()
+  let gitpath = GitPath()
+  exec 'cd '. gitpath
+  " NOTE: the first argument is not needed. It is overriden by the options
+  " (third argument)
+  call fzf#vim#grep2("echo loading ", a:query, command_with_preview, a:fullscreen)
+  exec 'cd '. curr_path
+  call s:RestoreFzfDefaultArgs({})
 endfunction
 
 function! RipgrepFuzzy(query, fullscreen)
-  let command_fmt = 'rg' . s:rg_args . '-- %s ' . GitPath()
+  let command_fmt = 'rg' . s:rg_args . '-- %s || true'
   let initial_command = printf(command_fmt, shellescape(a:query))
-  let reload_command = printf(command_fmt, '{q}')
-  let spec = {'options': ['--query', a:query]}
+  " Hide query for now
+  " let spec = {'options': ['--query', a:query]}
+  let spec = {'options': []}
+
+  " Change path to get relative 'short' paths in the fzf search
+  let curr_path = getcwd()
+  let gitpath = GitPath()
+  exec 'cd '. gitpath
 
   if g:is_windows
-    call fzf#vim#grep(initial_command, 1, s:FzfRgWindows_preview(spec, a:fullscreen), a:fullscreen)
+    let command_with_preview = s:FzfRgWindows_preview(spec, a:fullscreen)
   else
-    let spec.options = s:FzfRg_bindings(spec.options)
-    call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen)), a:fullscreen)
+    " let spec.options = s:FzfRg_bindings(spec.options)
+    " call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen)), a:fullscreen)
+    let command_with_preview = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
+    let command_with_preview.options = command_with_preview.options + s:fzf_bind_options
   endif
+
+  call fzf#vim#grep(initial_command, command_with_preview, a:fullscreen)
+
+  exec 'cd '. curr_path
+  call s:RestoreFzfDefaultArgs({})
 endfunction
 
 func! s:SetFZF () abort
@@ -495,20 +641,22 @@ func! s:SetFZF () abort
   "   \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
   "   \   g:is_windows ? s:FzfRgWindows_preview({}, <bang>0) : fzf#vim#with_preview(), <bang>0)
 
+  command! -nargs=* CPrj call FzfChangeProject()
   command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
+  command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
   command! -bang -nargs=? -complete=dir Files
-    \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+    \ call s:Fzf_vim_files(<q-args>, s:fzf_preview_options, <bang>0)
 
   if g:is_windows
 
     " command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
-    command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
+    " command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_preview_options, <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -516,12 +664,12 @@ func! s:SetFZF () abort
 
   elseif g:is_termux
 
-    command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
+    " command! -nargs=* -bang Rg call RipgrepFuzzy(<q-args>, <bang>0)
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_preview_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), s:UpdateFzfDefaultArgs(s:fzf_options_with_preview, <bang>0), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_preview_options, <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -530,14 +678,14 @@ func! s:SetFZF () abort
   elseif g:is_mac
 
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_bind_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_bind_options, <bang>0)
 
-    command! -bang -nargs=* Rg
-      \ call fzf#vim#grep(
-      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
-      \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+    " command! -bang -nargs=* Rg
+    "   \ call fzf#vim#grep(
+    "   \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
+    "   \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=π"
@@ -546,14 +694,14 @@ func! s:SetFZF () abort
   else
     " Linux
     command! -bang -nargs=? -complete=dir FzfFiles
-      \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(<q-args>, s:fzf_bind_options, <bang>0)
     command! -bang -nargs=? -complete=dir GitFZF
-      \ call fzf#vim#files(GitPath(), fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+      \ call s:Fzf_vim_files(GitPath(), s:fzf_bind_options, <bang>0)
 
-    command! -bang -nargs=* Rg
-      \ call fzf#vim#grep(
-      \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
-      \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
+    " command! -bang -nargs=* Rg
+    "   \ call fzf#vim#grep(
+    "   \   'rg' . s:rg_args . '-- ' . shellescape(<q-args>) . ' ' . GitPath(), 1,
+    "   \   fzf#vim#with_preview(s:UpdateFzfDefaultArgs(s:fzf_options_with_binds, <bang>0)), <bang>0)
 
     if ! has('nvim')
       execute "set <M-p>=\ep"
@@ -571,6 +719,7 @@ func! s:SetFZF () abort
   " Set key mappings
   nnoremap <A-p> :GitFZF!<CR>
   nnoremap <C-P> :GitFZF<CR>
+  nnoremap <C-o>p :CPrj<CR>
 endf
 
 func! s:SetVimSystemCopyMaps () abort
@@ -748,10 +897,16 @@ function! g:CurrentOS ()
   if has("gui_mac") || os ==? 'Darwin'
     let g:is_mac = 1
     let known_os = s:mac
+  " TODO: Fix windows falling in this detection
   " Gitbash and Msys zsh does not report ming on first run
   elseif os =~? 'cygwin' || os =~? 'MINGW' || os =~? 'MSYS' || $IS_GITBASH == 'true'
+    if $IS_POWERSHELL == 'true' || $IS_CMD == 'true'
+      let g:is_gitbash = 0
+    else
+      let g:is_gitbash = 1
+    endif
+
     let g:is_windows = 1
-    let g:is_gitbash = 1
     let known_os = s:windows
   elseif has('win32') || has("gui_win32")
     let g:is_windows = 1
@@ -802,3 +957,4 @@ func! config#after () abort
   silent call s:Set_os_specific_after()
   silent call s:SetConfigurationsAfter()
 endf
+
