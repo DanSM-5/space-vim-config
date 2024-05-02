@@ -519,10 +519,10 @@ function! FzfChangeProject() abort
     \   'source': getprojects,
     \   'options': [
     \     '--prompt', 'Projs> ',
-    \     '--multi', '--ansi',
+    \     '--no-multi', '--ansi',
     \     '--layout=reverse',
-    \     '--bind', 'ctrl-f:change-prompt(Files> )+reload(' . files_command . ' . {})+clear-query+unbind(ctrl-f)',
-    \     '--bind', 'ctrl-r:change-prompt(Projs> )+reload(' . reload_command . ')+rebind(ctrl-f)+clear-query',
+    \     '--bind', 'ctrl-f:change-prompt(Files> )+reload(' . files_command . ' . {})+clear-query+change-multi+unbind(ctrl-f)',
+    \     '--bind', 'ctrl-r:change-prompt(Projs> )+reload(' . reload_command . ')+rebind(ctrl-f)+clear-query+change-multi(0)',
     \     '--preview', preview]
     \ }
 
