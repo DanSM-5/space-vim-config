@@ -273,11 +273,13 @@ func! s:WSL_conf_before () abort
 endf
 
 func! s:WSL_conf_after () abort
-  " Set copy and paste commands
-  let g:system_copy#paste_command = 'pbpaste.exe'
-  let g:system_copy#copy_command = 'pbcopy.exe'
+  if $IS_WSL1 == 'true'
+    " Set copy and paste commands
+    let g:system_copy#paste_command = 'pbpaste.exe'
+    let g:system_copy#copy_command = 'pbcopy.exe'
 
-  call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+    call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+  endif
 
   silent call s:MoveLinesBlockMapsLinux()
 
