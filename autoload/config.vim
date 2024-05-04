@@ -279,6 +279,12 @@ func! s:WSL_conf_after () abort
     let g:system_copy#copy_command = 'pbcopy.exe'
 
     call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+  elseif !empty($DISPLAY) && executable('xsel')
+    let g:system_copy#copy_command = 'xsel -i -b'
+    let g:system_copy#paste_command = 'xsel -o -b'
+  elseif !empty($DISPLAY) && executable('xclip')
+    let g:system_copy#copy_command = 'xclip -i -selection clipboard'
+    let g:system_copy#paste_command = 'xclip -o -selection clipboard'
   endif
 
   silent call s:MoveLinesBlockMapsLinux()
