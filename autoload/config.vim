@@ -94,6 +94,10 @@ func! s:SetConfigurationsAfter () abort
   " Configure FZF
   silent call s:SetFZF()
 
+  " Filter quickfix with :Cfilter :Lfilter
+  autocmd QuickFixCmdPost *grep* cwindow
+  packadd cfilter
+
   " Change cursor.
   if ! has('nvim') && ! has('gui_mac') && ! has('gui_win32')
 
