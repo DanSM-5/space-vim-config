@@ -288,6 +288,14 @@ func! s:WSL_conf_after () abort
   elseif !empty($WAYLAND_DISPLAY) && executable('wl-copy') && executable('wl-paste')
     let g:system_copy#copy_command = 'wl-copy --foreground --type text/plain'
     let g:system_copy#paste_command = 'wl-paste --no-newline'
+  elseif executable('pbpaste.exe')
+    let g:system_copy#paste_command = 'pbpaste.exe'
+    let g:system_copy#copy_command = 'pbcopy.exe'
+
+    call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+  else
+    let g:system_copy#paste_command = 'pwsh.exe -NoLogo -NonInteractive -NoProfile -Command Get-Clipboard'
+    let g:system_copy#copy_command = 'pwsh.exe -NoLogo -NonInteractive -NoProfile -Command Set-Clipboard'
   endif
 
   silent call s:MoveLinesBlockMapsLinux()
