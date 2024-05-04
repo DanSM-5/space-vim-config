@@ -285,6 +285,9 @@ func! s:WSL_conf_after () abort
   elseif !empty($DISPLAY) && executable('xclip')
     let g:system_copy#copy_command = 'xclip -i -selection clipboard'
     let g:system_copy#paste_command = 'xclip -o -selection clipboard'
+  elseif !empty($WAYLAND_DISPLAY) && executable('wl-copy') && executable('wl-paste')
+    let g:system_copy#copy_command = 'wl-copy --foreground --type text/plain'
+    let g:system_copy#paste_command = 'wl-paste --no-newline'
   endif
 
   silent call s:MoveLinesBlockMapsLinux()
