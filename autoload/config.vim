@@ -580,10 +580,10 @@ endfunction
 function! RipgrepFzf(query, fullscreen)
   let fzf_rg_args = s:rg_args
 
-  if g:is_windows
-    " git bash and zsh require escaping globs
-    let fzf_rg_args = ' --glob=^"^!.git^" --glob=^"^!node_modules^" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
-  endif
+  " if g:is_windows
+    " let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob="!.git" --glob="!node_modules" '
+    " let fzf_rg_args = ' --glob="!.git" --glob="!node_modules" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
+  " endif
 
   let command_fmt = 'rg' . fzf_rg_args . '-- %s || true'
   let initial_command = printf(command_fmt, fzf#shellescape(a:query))
