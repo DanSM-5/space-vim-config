@@ -1,4 +1,5 @@
 " Add utility clipboard functions
+" Based on SpaceVim: bundle/vim-clipboard/autoload/clipboard.vim
 
 function! s:set_command() abort
   let yank = ''
@@ -8,12 +9,44 @@ function! s:set_command() abort
 
   " in vim8, system() do not support list argv
 
-  if $IS_WINDOWS == 'true'
+  if has('wsl') && $IS_WSL1 == 'true'
     let yank = 'pbcopy.exe'
     let paste = 'pbpaste.exe'
-  elseif $IS_MAC == 'true'
+  elseif has('mac')
     let yank = 'pbcopy'
     let paste = 'pbpaste'
+  elseif !empty($WAYLAND_DISPLAY) && executable('wl-copy') && executable('wl-paste')
+    let yank = 'wl-copy --foreground --type text/plain'
+    let paste = 'wl-paste --no-newline'
+  elseif !empty($DISPLAY) && executable('xclip')
+    let yank = 'xclip -i -selection clipboard'
+    let paste = 'xclip -o -selection clipboard'
+  elseif !empty($DISPLAY) && executable('xsel')
+    let yank = 'xsel -i -b'
+    let paste = 'xsel -o -b'
+  elseif executable('lemonade')
+    let yank = 'lemonade copy'
+    let paste = 'lemonade paste'
+  elseif executable('pbcopy.exe')
+    let yank = 'pbcopy.exe'
+    let paste = 'pbpaste.exe'
+  elseif executable('doitclient')
+    let yank = 'doitclient wclip'
+    let paste = 'doitclient wclip -r'
+  elseif executable('win32yank.exe')
+    if has('wsl') && getftype(exepath('win32yank.exe')) == 'link'
+      let win32yank = resolve(exepath('win32yank.exe'))
+    else
+      let win32yank = 'win32yank.exe'
+    endif
+    let yank = shellescape(win32yank) . ' -i --crlf'
+    let paste = shellescape(win32yank) .  ' -o --lf'
+  elseif executable('termux-clipboard-set')
+    let yank = 'termux-clipboard-set'
+    let paste = 'termux-clipboard-get'
+  elseif !empty($TMUX) && executable('tmux')
+    let yank = 'tmux load-buffer -'
+    let paste = 'tmux save-buffer -'
   endif
 
   return [yank, paste]

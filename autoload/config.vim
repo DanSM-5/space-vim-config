@@ -94,6 +94,10 @@ func! s:SetConfigurationsAfter () abort
   " Configure FZF
   silent call s:SetFZF()
 
+  " Filter quickfix with :Cfilter :Lfilter
+  autocmd QuickFixCmdPost *grep* cwindow
+  packadd cfilter
+
   " Change cursor.
   if ! has('nvim') && ! has('gui_mac') && ! has('gui_win32')
 
@@ -269,11 +273,30 @@ func! s:WSL_conf_before () abort
 endf
 
 func! s:WSL_conf_after () abort
-  " Set copy and paste commands
-  let g:system_copy#paste_command = 'pbpaste.exe'
-  let g:system_copy#copy_command = 'pbcopy.exe'
+  if $IS_WSL1 == 'true'
+    " Set copy and paste commands
+    let g:system_copy#paste_command = 'pbpaste.exe'
+    let g:system_copy#copy_command = 'pbcopy.exe'
 
-  call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+    call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+  elseif !empty($DISPLAY) && executable('xsel')
+    let g:system_copy#copy_command = 'xsel -i -b'
+    let g:system_copy#paste_command = 'xsel -o -b'
+  elseif !empty($DISPLAY) && executable('xclip')
+    let g:system_copy#copy_command = 'xclip -i -selection clipboard'
+    let g:system_copy#paste_command = 'xclip -o -selection clipboard'
+  elseif !empty($WAYLAND_DISPLAY) && executable('wl-copy') && executable('wl-paste')
+    let g:system_copy#copy_command = 'wl-copy --foreground --type text/plain'
+    let g:system_copy#paste_command = 'wl-paste --no-newline'
+  elseif executable('pbpaste.exe')
+    let g:system_copy#paste_command = 'pbpaste.exe'
+    let g:system_copy#copy_command = 'pbcopy.exe'
+
+    call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+  else
+    let g:system_copy#paste_command = 'pwsh.exe -NoLogo -NonInteractive -NoProfile -Command Get-Clipboard'
+    let g:system_copy#copy_command = 'pwsh.exe -NoLogo -NonInteractive -NoProfile -Command Set-Clipboard'
+  endif
 
   silent call s:MoveLinesBlockMapsLinux()
 
@@ -557,10 +580,10 @@ endfunction
 function! RipgrepFzf(query, fullscreen)
   let fzf_rg_args = s:rg_args
 
-  if g:is_windows
-    " git bash and zsh require escaping globs
-    let fzf_rg_args = ' --glob=^"^!.git^" --glob=^"^!node_modules^" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
-  endif
+  " if g:is_windows
+    " let s:rg_args = ' --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden --glob="!.git" --glob="!node_modules" '
+    " let fzf_rg_args = ' --glob="!.git" --glob="!node_modules" --column --line-number --no-ignore --no-heading --color=always --smart-case --hidden '
+  " endif
 
   let command_fmt = 'rg' . fzf_rg_args . '-- %s || true'
   let initial_command = printf(command_fmt, fzf#shellescape(a:query))
@@ -956,5 +979,15 @@ func! config#after () abort
   silent call s:Set_user_keybindings()
   silent call s:Set_os_specific_after()
   silent call s:SetConfigurationsAfter()
+
+  " Add to force 2 spaces with tab
+  " filetype plugin indent on
+  " " On pressing tab, insert 2 spaces
+  " set expandtab
+  " " show existing tab with 2 spaces width
+  " set tabstop=2
+  " set softtabstop=2
+  " " when indenting with '>', use 2 spaces width
+  " set shiftwidth=2
 endf
 
