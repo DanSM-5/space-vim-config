@@ -316,6 +316,10 @@ func! s:Termux_conf_before () abort
   " let g:spacevim_custom_plugins = [
   "   \ ['/home/linuxbrew/.linuxbrew/opt/fzf'],
   "   \ ]
+
+  if has('nvim')
+    let g:python3_host_prog = 'python3'
+  endif
 endf
 
 func! s:Termux_conf_after () abort
@@ -478,8 +482,8 @@ function! s:Fzf_vim_files(query, options, fullscreen) abort
 endfunction
 
 function! s:FzfSelectedList(list) abort
-  echo a:list
   if len(a:list) == 0
+    echo a:list
     return
   else
     if isdirectory(a:list[0])
@@ -609,25 +613,29 @@ function! RipgrepFzf(query, fullscreen)
   " let g:fzf_vim.preview_bash = g:bash
 
   if g:is_windows
-    let command_with_preview = s:FzfRgWindows_preview(spec, a:fullscreen)
+    let spec = s:FzfRgWindows_preview(spec, a:fullscreen)
   else
-    let command_with_preview = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
-    let command_with_preview.options = command_with_preview.options + s:fzf_bind_options
+    let spec = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
+    let spec.options = spec.options + s:fzf_bind_options
   endif
 
   " fzf.vim examples
   " call fzf#vim#grep2("rg --column --line-number --no-heading --color=always --smart-case -- ", <q-args>, fzf#vim#with_preview(), <bang>0)
   " call fzf#vim#grep2("rg --column --line-number --no-heading --color=always --smart-case -- ", a:query, fzf#vim#with_preview(), a:fullscreen)
 
-  " Change path to get relative 'short' paths in the fzf search
   let curr_path = getcwd()
   let gitpath = GitPath()
-  exec 'cd '. gitpath
-  " NOTE: the first argument is not needed. It is overriden by the options
-  " (third argument)
-  call fzf#vim#grep2("echo loading ", a:query, command_with_preview, a:fullscreen)
-  exec 'cd '. curr_path
-  call s:RestoreFzfDefaultArgs({})
+
+  try
+    " Change path to get relative 'short' paths in the fzf search
+    exec 'cd '. gitpath
+    " NOTE: the first argument is not needed. It is overriden by the options
+    " (third argument)
+    call fzf#vim#grep2("echo loading ", a:query, spec, a:fullscreen)
+  finally
+    exec 'cd '. curr_path
+    call s:RestoreFzfDefaultArgs({})
+  endtry
 endfunction
 
 function! RipgrepFuzzy(query, fullscreen)
@@ -640,21 +648,24 @@ function! RipgrepFuzzy(query, fullscreen)
   " Change path to get relative 'short' paths in the fzf search
   let curr_path = getcwd()
   let gitpath = GitPath()
-  exec 'cd '. gitpath
 
-  if g:is_windows
-    let command_with_preview = s:FzfRgWindows_preview(spec, a:fullscreen)
-  else
-    " let spec.options = s:FzfRg_bindings(spec.options)
-    " call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen)), a:fullscreen)
-    let command_with_preview = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
-    let command_with_preview.options = command_with_preview.options + s:fzf_bind_options
-  endif
+  try
+    exec 'cd '. gitpath
 
-  call fzf#vim#grep(initial_command, command_with_preview, a:fullscreen)
+    if g:is_windows
+      let spec = s:FzfRgWindows_preview(spec, a:fullscreen)
+    else
+      " let spec.options = s:FzfRg_bindings(spec.options)
+      " call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen)), a:fullscreen)
+      let spec = fzf#vim#with_preview(s:UpdateFzfDefaultArgs(spec, a:fullscreen))
+      let spec.options = spec.options + s:fzf_bind_options
+    endif
 
-  exec 'cd '. curr_path
-  call s:RestoreFzfDefaultArgs({})
+    call fzf#vim#grep(initial_command, spec, a:fullscreen)
+  finally
+    exec 'cd '. curr_path
+    call s:RestoreFzfDefaultArgs({})
+  endtry
 endfunction
 
 func! s:SetFZF () abort
@@ -936,6 +947,7 @@ function! g:CurrentOS ()
     let known_os = s:windows
   elseif os ==? 'Linux'
     let known_os = s:linux
+    let g:is_linux = 1
     if has('wsl') || system('cat /proc/version') =~ '[Mm]icrosoft'
       let g:is_wsl = 1
     elseif $IS_TERMUX =~ 'true'
