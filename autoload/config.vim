@@ -147,7 +147,7 @@ func! s:Set_user_keybindings () abort
   nnoremap <silent> <s-tab> :bN<cr>
 
   " vim-asterisk
-  " let g:asterisk#keeppos = 1
+  let g:asterisk#keeppos = 1
   map *   <Plug>(asterisk-*)
   map #   <Plug>(asterisk-#)
   map g*  <Plug>(asterisk-g*)
@@ -162,6 +162,11 @@ func! s:Set_user_keybindings () abort
   " map #  <Plug>(asterisk-z#)
   " map g* <Plug>(asterisk-gz*)
   " map g# <Plug>(asterisk-gz#)
+
+  " Command mode open in buffer ctrl+e
+  cnoremap <C-e> <C-f>
+  " Command mode open in buffer leader+t+e from normal mode
+  nnoremap <Leader>te q:
 endf
 
 func! s:FixCursorShapeOnExitNvim () abort
