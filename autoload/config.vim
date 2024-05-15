@@ -481,9 +481,12 @@ function! s:Fzf_vim_files(query, options, fullscreen) abort
   " Append options after to get better keybindings for 'ctrl-/'
   let spec.options = spec.options + a:options
 
-  call s:UpdateFzfDefaultArgs({}, a:fullscreen)
-  call fzf#vim#files(a:query, spec, a:fullscreen)
-  call s:RestoreFzfDefaultArgs({})
+  try
+    call s:UpdateFzfDefaultArgs({}, a:fullscreen)
+    call fzf#vim#files(a:query, spec, a:fullscreen)
+  finally
+    call s:RestoreFzfDefaultArgs({})
+  endtry
 endfunction
 
 function! s:FzfSelectedList(list) abort
@@ -532,7 +535,7 @@ function! FzfChangeProject() abort
       let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
       " Hack to run a bash script without adding -l or -i flags (faster)
       " gitbash needs to escape the PATH varibable '\$PATH'
-      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
     else
       let home = substitute($USERPROFILE, '\\', '/', 'g')
       " Hack to run a bash script without adding -l or -i flags (faster)
