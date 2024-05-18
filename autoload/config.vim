@@ -790,6 +790,10 @@ func! s:DefineCommands () abort
   nnoremap <silent><leader>tb :ToggleBg<CR>
   autocmd vimenter * let g:bg_value = substitute(trim(execute("hi Normal")), 'xxx', '', 'g')
   autocmd vimenter * ToggleBg
+
+  " Use lf to select files to open in vim
+  " NOTE: It does not work on nvim
+  command! -bar LF call LF()
 endf
 
 func! s:RemapAltUpDownNormal () abort
@@ -984,6 +988,29 @@ func! s:ToggleBg ()
   endif
 endfunction
 
+function! LF()
+  if has('nvim')
+    echo 'Cannot open in nvim'
+    return
+  endif
+  let temp = tempname()
+  exec 'silent !lf -selection-path=' . shellescape(temp)
+  if !filereadable(temp)
+    redraw!
+    return
+  endif
+  let names = readfile(temp)
+  if empty(names)
+    redraw!
+    return
+  endif
+  exec 'edit ' . fnameescape(names[0])
+  for name in names[1:]
+    exec 'argadd ' . fnameescape(name)
+  endfor
+  redraw!
+endfunction
+
 " Ensure command
 let g:host_os = g:CurrentOS()
 
@@ -999,7 +1026,6 @@ func! config#after () abort
   silent call s:Set_user_keybindings()
   silent call s:Set_os_specific_after()
   silent call s:SetConfigurationsAfter()
-
   " Add to force 2 spaces with tab
   " filetype plugin indent on
   " " On pressing tab, insert 2 spaces
