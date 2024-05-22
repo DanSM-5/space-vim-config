@@ -147,7 +147,7 @@ func! s:Set_user_keybindings () abort
   nnoremap <silent> <s-tab> :bN<cr>
 
   " vim-asterisk
-  " let g:asterisk#keeppos = 1
+  let g:asterisk#keeppos = 1
   map *   <Plug>(asterisk-*)
   map #   <Plug>(asterisk-#)
   map g*  <Plug>(asterisk-g*)
@@ -162,6 +162,11 @@ func! s:Set_user_keybindings () abort
   " map #  <Plug>(asterisk-z#)
   " map g* <Plug>(asterisk-gz*)
   " map g# <Plug>(asterisk-gz#)
+
+  " Command mode open in buffer ctrl+e
+  cnoremap <C-e> <C-f>
+  " Command mode open in buffer leader+t+e from normal mode
+  nnoremap <Leader>te q:
 endf
 
 func! s:FixCursorShapeOnExitNvim () abort
@@ -476,9 +481,12 @@ function! s:Fzf_vim_files(query, options, fullscreen) abort
   " Append options after to get better keybindings for 'ctrl-/'
   let spec.options = spec.options + a:options
 
-  call s:UpdateFzfDefaultArgs({}, a:fullscreen)
-  call fzf#vim#files(a:query, spec, a:fullscreen)
-  call s:RestoreFzfDefaultArgs({})
+  try
+    call s:UpdateFzfDefaultArgs({}, a:fullscreen)
+    call fzf#vim#files(a:query, spec, a:fullscreen)
+  finally
+    call s:RestoreFzfDefaultArgs({})
+  endtry
 endfunction
 
 function! s:FzfSelectedList(list) abort
@@ -527,7 +535,7 @@ function! FzfChangeProject() abort
       let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
       " Hack to run a bash script without adding -l or -i flags (faster)
       " gitbash needs to escape the PATH varibable '\$PATH'
-      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:\$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
     else
       let home = substitute($USERPROFILE, '\\', '/', 'g')
       " Hack to run a bash script without adding -l or -i flags (faster)
@@ -782,6 +790,10 @@ func! s:DefineCommands () abort
   nnoremap <silent><leader>tb :ToggleBg<CR>
   autocmd vimenter * let g:bg_value = substitute(trim(execute("hi Normal")), 'xxx', '', 'g')
   autocmd vimenter * ToggleBg
+
+  " Use lf to select files to open in vim
+  " NOTE: It does not work on nvim
+  command! -bar LF call LF()
 endf
 
 func! s:RemapAltUpDownNormal () abort
@@ -976,6 +988,29 @@ func! s:ToggleBg ()
   endif
 endfunction
 
+function! LF()
+  if has('nvim')
+    echo 'Cannot open in nvim'
+    return
+  endif
+  let temp = tempname()
+  exec 'silent !lf -selection-path=' . shellescape(temp)
+  if !filereadable(temp)
+    redraw!
+    return
+  endif
+  let names = readfile(temp)
+  if empty(names)
+    redraw!
+    return
+  endif
+  exec 'edit ' . fnameescape(names[0])
+  for name in names[1:]
+    exec 'argadd ' . fnameescape(name)
+  endfor
+  redraw!
+endfunction
+
 " Ensure command
 let g:host_os = g:CurrentOS()
 
@@ -991,7 +1026,6 @@ func! config#after () abort
   silent call s:Set_user_keybindings()
   silent call s:Set_os_specific_after()
   silent call s:SetConfigurationsAfter()
-
   " Add to force 2 spaces with tab
   " filetype plugin indent on
   " " On pressing tab, insert 2 spaces

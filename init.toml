@@ -33,6 +33,8 @@
   bootstrap_before = "config#before"
   bootstrap_after = "config#after"
   # autocomplete_method = "coc"
+  default_indent = 2
+  expand_tab = true
 
 # Enable autocomplete layer
 [[layers]]
