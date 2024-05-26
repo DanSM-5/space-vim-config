@@ -235,6 +235,12 @@ func! s:Windows_conf_before () abort
   "   let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
   " endif
 
+  if g:is_gitbash
+    let g:fzf_vim.preview_bash = substitute(s:WindowsShortPath(g:bash), '\', '/', 'g')
+  else
+    let g:fzf_vim.preview_bash = s:WindowsShortPath(g:bash)
+  endif
+
   let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
   " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
 endf
@@ -791,6 +797,13 @@ func! s:DefineCommands () abort
   autocmd vimenter * let g:bg_value = substitute(trim(execute("hi Normal")), 'xxx', '', 'g')
   autocmd vimenter * ToggleBg
 
+  command! SetTab call s:SetTab()
+  nnoremap <silent><leader>st :SetTab<CR>
+  " NOTE: if needed uncomment next line
+  " but I should check if I can force always 2 spaces for indent
+  " with SpaceVim built-ins
+  " autocmd vimenter * SetTab
+
   " Use lf to select files to open in vim
   " NOTE: It does not work on nvim
   command! -bar LF call LF()
@@ -988,6 +1001,15 @@ func! s:ToggleBg ()
   endif
 endfunction
 
+function s:SetTab ()
+  set tabstop=2 softtabstop=2 shiftwidth=2
+  set expandtab
+  " set number ruler
+  " set autoindent smartindent
+  " syntax enable
+  filetype plugin indent on
+endfunction
+
 function! LF()
   if has('nvim')
     echo 'Cannot open in nvim'
@@ -1017,6 +1039,10 @@ let g:host_os = g:CurrentOS()
 func! config#before () abort
   " Can be used to set different undodir between vim and nvim
   " silent call s:SetUndodir()
+
+  " Fzf configs
+  let g:fzf_vim = {}
+
   silent call s:Set_os_specific_before()
   silent call s:SetBufferOptions()
   silent call s:SetConfigurationsBefore()
