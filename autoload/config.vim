@@ -526,7 +526,9 @@ function! FzfChangeProject() abort
   let reload_command = getprojects
   let files_command = "fd --type file --color=always --no-ignore --hidden --exclude node_modules --exclude .git "
 
-  " This a lot of workaounds 😅
+  " NOTE: Windows only block
+  " The below if handles the function when called from powershell (pwsh)
+  " And bash/zsh from MINGW (git bash)
   if g:is_windows
     " Get env.exe from gitbash
     let gitenv = substitute(system('where.exe env | awk "/[Gg]it/ {print}" | tr -d "\r\n"'), '\n', '', '')
@@ -534,22 +536,21 @@ function! FzfChangeProject() abort
     let gitenv = shellescape(substitute(gitenv, '\\', '/', 'g'))
     let bash = substitute(s:WindowsShortPath(g:bash), '\\', '/', 'g')
     let preview = bash . ' ' . preview
+    " Hack to run a bash script without adding -l or -i flags (faster)
+    let getprojects = ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
 
+    " Subtle differences between git bash and powershell
     if $IS_GITBASH == 'true'
-      " If gitbash, you can call a script directly
-      " Otherwise you need to pass the same source command as the starting point
+      " Update reload_command (can call script directly)
       let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
-      " Hack to run a bash script without adding -l or -i flags (faster)
-      " gitbash needs to escape the PATH varibable '\$PATH'
-      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      let getprojects = gitenv . getprojects
     else
       let home = substitute($USERPROFILE, '\\', '/', 'g')
-      " Hack to run a bash script without adding -l or -i flags (faster)
-      " powershell does not need to escape the PATH varibable '$PATH'
-      let getprojects = gitenv . ' HOME=' . home . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      " Set get getprojects, then update reload_command
+      let getprojects = gitenv . ' HOME=' . home . getprojects
       let reload_command = getprojects
-      " arg --path-separator ''/'' (double quotes but vim script uncomments
-      " the rest lol) breaks in gitbash... why?
+      " Use fortward slash (/) as path separator if called from powershell
+      " It is not needed for gitbash (it breaks).
       let files_command = files_command . ' --path-separator "/"'
     endif
   endif
