@@ -499,16 +499,16 @@ function! s:FzfSelectedList(list) abort
   if len(a:list) == 0
     echo a:list
     return
-  else
-    if isdirectory(a:list[0])
-      " Use first selected directory only!
-      call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
-    elseif !empty(glob(a:list[0])) " Is file
-      " Open multiple files
-      for sfile in a:list
-        exec ':e ' . sfile
-      endfor
-    endif
+  endif
+
+  if isdirectory(a:list[0])
+    " Use first selected directory only!
+    call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
+  elseif !empty(glob(a:list[0])) " Is file
+    " Open multiple files
+    for sfile in a:list
+      exec ':e ' . sfile
+    endfor
   endif
 endfunction
 
