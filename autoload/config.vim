@@ -235,6 +235,12 @@ func! s:Windows_conf_before () abort
   "   let g:bash = substitute(system("where.exe bash | awk \"/[Gg]it/ {print}\" | tr -d \"\r\n\" "), '\n', '', '')
   " endif
 
+  if g:is_gitbash
+    let g:fzf_vim.preview_bash = substitute(s:WindowsShortPath(g:bash), '\', '/', 'g')
+  else
+    let g:fzf_vim.preview_bash = s:WindowsShortPath(g:bash)
+  endif
+
   let g:python3_host_prog = '~/AppData/local/Programs/Python/Python3*/python.exe'
   " let g:python3_host_prog = '$HOME\AppData\Local\Programs\Python\Python*\python.exe'
 endf
@@ -493,16 +499,16 @@ function! s:FzfSelectedList(list) abort
   if len(a:list) == 0
     echo a:list
     return
-  else
-    if isdirectory(a:list[0])
-      " Use first selected directory only!
-      call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
-    elseif !empty(glob(a:list[0])) " Is file
-      " Open multiple files
-      for sfile in a:list
-        exec ':e ' . sfile
-      endfor
-    endif
+  endif
+
+  if isdirectory(a:list[0])
+    " Use first selected directory only!
+    call s:Fzf_vim_files(a:list[0], s:fzf_preview_options, 0)
+  elseif !empty(glob(a:list[0])) " Is file
+    " Open multiple files
+    for sfile in a:list
+      exec ':e ' . sfile
+    endfor
   endif
 endfunction
 
@@ -520,7 +526,9 @@ function! FzfChangeProject() abort
   let reload_command = getprojects
   let files_command = "fd --type file --color=always --no-ignore --hidden --exclude node_modules --exclude .git "
 
-  " This a lot of workaounds 😅
+  " NOTE: Windows only block
+  " The below if handles the function when called from powershell (pwsh)
+  " And bash/zsh from MINGW (git bash)
   if g:is_windows
     " Get env.exe from gitbash
     let gitenv = substitute(system('where.exe env | awk "/[Gg]it/ {print}" | tr -d "\r\n"'), '\n', '', '')
@@ -528,22 +536,21 @@ function! FzfChangeProject() abort
     let gitenv = shellescape(substitute(gitenv, '\\', '/', 'g'))
     let bash = substitute(s:WindowsShortPath(g:bash), '\\', '/', 'g')
     let preview = bash . ' ' . preview
+    " Hack to run a bash script without adding -l or -i flags (faster)
+    let getprojects = ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
 
+    " Subtle differences between git bash and powershell
     if $IS_GITBASH == 'true'
-      " If gitbash, you can call a script directly
-      " Otherwise you need to pass the same source command as the starting point
+      " Update reload_command (can call script directly)
       let reload_command = 'user_conf_path=' . user_conf_path . ' ' . reload_command
-      " Hack to run a bash script without adding -l or -i flags (faster)
-      " gitbash needs to escape the PATH varibable '\$PATH'
-      let getprojects = gitenv . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      let getprojects = gitenv . getprojects
     else
       let home = substitute($USERPROFILE, '\\', '/', 'g')
-      " Hack to run a bash script without adding -l or -i flags (faster)
-      " powershell does not need to escape the PATH varibable '$PATH'
-      let getprojects = gitenv . ' HOME=' . home . ' MSYS=enable_pcon MSYSTEM=MINGW64 enable_pcon=1 SHELL=/usr/bin/bash /usr/bin/bash -c "export PATH=/mingw64/bin:/usr/local/bin:/usr/bin:/bin:$PATH; export user_conf_path=' . user_conf_path . '; ' . getprojects . '"'
+      " Set get getprojects, then update reload_command
+      let getprojects = gitenv . ' HOME=' . home . getprojects
       let reload_command = getprojects
-      " arg --path-separator ''/'' (double quotes but vim script uncomments
-      " the rest lol) breaks in gitbash... why?
+      " Use fortward slash (/) as path separator if called from powershell
+      " It is not needed for gitbash (it breaks).
       let files_command = files_command . ' --path-separator "/"'
     endif
   endif
@@ -791,6 +798,13 @@ func! s:DefineCommands () abort
   autocmd vimenter * let g:bg_value = substitute(trim(execute("hi Normal")), 'xxx', '', 'g')
   autocmd vimenter * ToggleBg
 
+  command! SetTab call s:SetTab()
+  nnoremap <silent><leader>st :SetTab<CR>
+  " NOTE: if needed uncomment next line
+  " but I should check if I can force always 2 spaces for indent
+  " with SpaceVim built-ins
+  " autocmd vimenter * SetTab
+
   " Use lf to select files to open in vim
   " NOTE: It does not work on nvim
   command! -bar LF call LF()
@@ -988,6 +1002,15 @@ func! s:ToggleBg ()
   endif
 endfunction
 
+function s:SetTab ()
+  set tabstop=2 softtabstop=2 shiftwidth=2
+  set expandtab
+  " set number ruler
+  " set autoindent smartindent
+  " syntax enable
+  filetype plugin indent on
+endfunction
+
 function! LF()
   if has('nvim')
     echo 'Cannot open in nvim'
@@ -1017,6 +1040,10 @@ let g:host_os = g:CurrentOS()
 func! config#before () abort
   " Can be used to set different undodir between vim and nvim
   " silent call s:SetUndodir()
+
+  " Fzf configs
+  let g:fzf_vim = {}
+
   silent call s:Set_os_specific_before()
   silent call s:SetBufferOptions()
   silent call s:SetConfigurationsBefore()
