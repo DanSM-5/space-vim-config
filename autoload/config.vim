@@ -805,6 +805,9 @@ func! s:DefineCommands () abort
   " with SpaceVim built-ins
   " autocmd vimenter * SetTab
 
+  command! -nargs=? -complete=buffer SudoSave
+        \ call s:SudoSave(<q-args>)
+
   " Use lf to select files to open in vim
   " NOTE: It does not work on nvim
   command! -bar LF call LF()
@@ -983,7 +986,7 @@ function! g:CurrentOS ()
       let g:is_termux = 1
     endif
   else
-    exe "normal \<Esc>"
+    exec "normal \<Esc>"
     throw "unknown OS: " . os
   endif
 
@@ -1032,6 +1035,18 @@ function! LF()
     exec 'argadd ' . fnameescape(name)
   endfor
   redraw!
+endfunction
+
+function! SudoSave (fileName) abort
+  let file = ''
+
+  if empty(a:fileName)
+    let file = "%"
+  else
+    let file = a:fileName
+  endif
+
+  exec 'write !sudo tee ' . file
 endfunction
 
 " Ensure command
