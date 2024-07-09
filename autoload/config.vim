@@ -1047,6 +1047,7 @@ function! SudoSave (fileName) abort
 
   if ! executable('sudo')
     echo 'No sudo available'
+    return
   endif
 
   if empty(a:fileName)
