@@ -98,6 +98,11 @@ func! s:SetConfigurationsAfter () abort
   autocmd QuickFixCmdPost *grep* cwindow
   packadd cfilter
 
+  " For suda.vim to edit with sudo permission in vim and nvim
+  " :SudoRead
+  " :SudoWrite
+  let g:suda_smart_edit = 1
+
   " Change cursor.
   if ! has('nvim') && ! has('gui_mac') && ! has('gui_win32')
 
@@ -806,7 +811,7 @@ func! s:DefineCommands () abort
   " autocmd vimenter * SetTab
 
   command! -nargs=? -complete=buffer SudoSave
-        \ call s:SudoSave(<q-args>)
+        \ call SudoSave(<q-args>)
 
   " Use lf to select files to open in vim
   " NOTE: It does not work on nvim
@@ -1039,6 +1044,10 @@ endfunction
 
 function! SudoSave (fileName) abort
   let file = ''
+
+  if ! executable('sudo')
+    echo 'No sudo available'
+  endif
 
   if empty(a:fileName)
     let file = "%"
