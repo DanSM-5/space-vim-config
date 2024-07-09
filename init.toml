@@ -104,3 +104,6 @@
 
 [[custom_plugins]]
   repo = "haya14busa/vim-asterisk"
+
+[[custom_plugins]]
+  repo = "lambdalisue/vim-suda"
