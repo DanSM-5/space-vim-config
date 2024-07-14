@@ -119,6 +119,11 @@ func! s:SetConfigurationsAfter () abort
       let &t_te.="\<Esc>[0 q"
     endif
   endif
+
+"   if has('nvim')
+"     set guicursor=n:block
+"     set guicursor=i:ver30
+"   endif
 endf
 
 func! s:SetBufferOptions () abort
