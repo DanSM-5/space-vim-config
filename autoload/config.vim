@@ -14,6 +14,7 @@ let g:is_gitbash = 0
 let g:is_windows = 0
 let g:is_mac = 0
 let g:is_termux = 0
+let g:is_container = 0
 
 let g:host_os = 'unknown'
 
@@ -357,6 +358,13 @@ func! s:Linux_conf_before () abort
   endif
 
   let g:rooter_change_directory_for_non_project_files = 'current'
+
+  " Use filesystem clipboard in container
+  if g:is_container
+    let g:system_copy#paste_command = 'fs-paste'
+    let g:system_copy#copy_command = 'fs-copy'
+    call clipboard#set(g:system_copy#copy_command, g:system_copy#paste_command)
+  endif
 endf
 
 func! s:Linux_conf_after () abort
@@ -987,7 +995,9 @@ function! g:CurrentOS ()
   elseif os ==? 'Linux'
     let known_os = s:linux
     let g:is_linux = 1
-    if has('wsl') || system('cat /proc/version') =~ '[Mm]icrosoft'
+    if $IS_FROM_CONTAINER == 'true'
+      let is_container = 1
+    elseif has('wsl') || system('cat /proc/version') =~ '[Mm]icrosoft'
       let g:is_wsl = 1
     elseif $IS_TERMUX =~ 'true'
       " Don't want to relay on config settings but it will do for now
