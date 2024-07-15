@@ -35,6 +35,7 @@
   # autocomplete_method = "coc"
   default_indent = 2
   expand_tab = true
+  windows_leader = '<F4>'
 
 # Enable autocomplete layer
 [[layers]]
@@ -117,3 +118,8 @@
 [[custom_plugins]]
   repo = "haya14busa/vim-asterisk"
   merged = false
+
+[[custom_plugins]]
+  repo = "lambdalisue/vim-suda"
+  merged = false
+
