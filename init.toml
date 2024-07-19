@@ -37,6 +37,30 @@
   expand_tab = true
   windows_leader = '<F4>'
 
+
+# Enable LSP:
+# [[layers]]
+#   name = "lsp"
+#
+# Specify file types to use ((n)vim < 5.0.0):
+#   filetypes = [
+#     "rust",
+#     "javascript"
+#   ]
+#
+# Neovim requires listing the enabled_clients (>= 5.0.0):
+#   enabled_clients = ['javascript', 'css', 'typescript']
+#
+# Override the command server:
+#   [layers.override_client_cmds]
+#     vimls = ["vim-language-server", "--stdio"]
+
+# Then install language server
+# Ref: https://spacevim.org/layers/language-server-protocol
+# bash:  `npm i -g bash-language-server`
+# js/ts: `npm install -g javascript-typescript-langserver`
+# css: `npm install -g vscode-css-languageserver-bin`
+
 # Enable autocomplete layer
 [[layers]]
   name = 'autocomplete'
