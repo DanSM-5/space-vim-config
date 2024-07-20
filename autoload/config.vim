@@ -87,7 +87,7 @@ let s:fzf_options_with_preview = {'options': s:fzf_preview_options }
 func! s:SetConfigurationsBefore () abort
   silent call s:SetCamelCaseMotion()
   silent call s:SetRG()
-  silent call s:SetCtrlSFM()
+  silent call s:SetCtrlSF()
   silent call s:DefineCommands()
 endf
 
@@ -418,7 +418,13 @@ func! s:SetRG () abort
   endif
 endf
 
-func! s:SetCtrlSFM () abort
+func! s:SetCtrlSF () abort
+  " Plugin help
+  " :h CtrlSF
+
+  " let g:ctrlsf_toggle_map_key = '\t'
+  " Highligth matching line in file and preview window
+  let g:ctrlsf_selected_line_hl = 'op'
   let g:ctrlsf_default_root = 'cwd'
   let g:ctrlsf_backend = 'rg'
   let g:ctrlsf_extra_backend_args = {
@@ -787,6 +793,8 @@ func! s:SetFZF () abort
   nnoremap <A-p> :GitFZF!<CR>
   nnoremap <C-P> :GitFZF<CR>
   nnoremap <C-o>p :CPrj<CR>
+  " Set usual ctrl-o behavior to double the sequence
+  nnoremap <C-o><C-o> <C-o>
 endf
 
 func! s:SetVimSystemCopyMaps () abort
@@ -794,6 +802,11 @@ func! s:SetVimSystemCopyMaps () abort
 endf
 
 func! s:SetCtrlSFMaps () abort
+  " Note: <C-M> and <Enter> (also <CR>) are the same
+  " for vim and nvim
+
+  " TODO: Consider changing maps to <C-O> to avoid
+  " clashes with enter
   nmap     <C-M>f <Plug>CtrlSFPrompt
   vmap     <C-M>f <Plug>CtrlSFVwordPath
   vmap     <C-M>F <Plug>CtrlSFVwordExec
@@ -801,7 +814,7 @@ func! s:SetCtrlSFMaps () abort
   nmap     <C-M>p <Plug>CtrlSFPwordPath
   nnoremap <C-M>o :CtrlSFOpen<CR>
   nnoremap <C-M>t :CtrlSFToggle<CR>
-  inoremap <C-M>t <Esc>:CtrlSFToggle<CR>
+  inoremap <C-O>t <Esc>:CtrlSFToggle<CR>
 endf
 
 func! s:DefineCommands () abort
