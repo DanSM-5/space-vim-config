@@ -629,8 +629,12 @@ function! RipgrepFzf(query, fullscreen)
   " endif
 
   let command_fmt = 'rg' . fzf_rg_args . '-- %s || true'
-  let initial_command = printf(command_fmt, fzf#shellescape(a:query))
+  " Fixed initial load. It seems it broke on windows using fzf#shellescape
+  " Usual shellescape works fine.
+  let initial_command = printf(command_fmt, g:is_windows ? shellescape(a:query) : fzf#shellescape(a:query))
   let reload_command = printf(command_fmt, '{q}')
+        " \     'source': initial_command,
+        " \     'sink': 'e',
   let spec = {
         \     'options': ['--disabled', '--query', a:query,
         \                 '--ansi', '--prompt', 'RG> ',
@@ -670,7 +674,16 @@ function! RipgrepFzf(query, fullscreen)
     exec 'cd '. gitpath
     " NOTE: the first argument is not needed. It is overriden by the options
     " (third argument)
-    call fzf#vim#grep2("echo loading ", a:query, spec, a:fullscreen)
+    " First argument is used to identify a command name
+    "
+    " In theory, we can replace the fzf#vim#grep2 function with the following
+    " fzf#run function BUT there is an issue with the sink function. current
+    " fzf#vim#grep2 is calling some reference functions in fzf.vim
+    " 'sink*': function('499') and 'sinklist': function('500')
+    " Until we know how fzf#vim#grep2 handles selected files to open them,
+    " we need to rely on the fzf#vim#grep2 function to handle things.
+    " call fzf#run(fzf#wrap('rg --column --line-number --no-heading --color=always --smart-case -- ', spec, a:fullscreen))
+    call fzf#vim#grep2('rg', a:query, spec, a:fullscreen)
   finally
     exec 'cd '. curr_path
     call s:RestoreFzfDefaultArgs({})
@@ -1096,6 +1109,7 @@ func! config#before () abort
 
   " Fzf configs
   let g:fzf_vim = {}
+  let g:fzf_history_dir = '~/.cache/fzf-history'
 
   silent call s:Set_os_specific_before()
   silent call s:SetBufferOptions()
